@@ -134,6 +134,28 @@ def debug_poc_cythonize():
     poc_compile(cpp_file=cpp_file, ext_module=ext_module, temp_fd=temp_fd)
 
 
+def debug_poc_cythonize_pyx():
+    assert not is_cython3()
+    py_file = io.file(
+        '$PYWHLOBF_DATA/poc/customized-src/example.pyx',
+        expandvars=True,
+        exists=True,
+    )
+
+    working_fd = io.folder('$PYWHLOBF_DATA/poc/working', expandvars=True, touch=True)
+    temp_fd = io.folder(working_fd / 'temp', reset=True)
+    asset_fd = io.folder('$PYWHLOBF_DATA/poc/asset', expandvars=True, exists=True)
+
+    cpp_file, ext_module = poc_cythonize(py_file, working_fd)
+    poc_obfuscate_inplace(
+        cpp_file=cpp_file,
+        ext_module=ext_module,
+        temp_fd=temp_fd,
+        asset_fd=asset_fd,
+    )
+    poc_compile(cpp_file=cpp_file, ext_module=ext_module, temp_fd=temp_fd)
+
+
 def debug_poc_cythonize_cython3():
     assert is_cython3()
     # https://github.com/cython/cython/issues/2863
