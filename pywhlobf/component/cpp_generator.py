@@ -40,7 +40,6 @@ class CppGenerator:
             compiler_directives=compiler_directives,
             **self.config.options,
         )
-        print(ext_modules)
         assert ext_modules is not None
         assert len(ext_modules) == 1
         ext_module = ext_modules[0]
