@@ -83,6 +83,6 @@ jobs:
     if: ${{ always() }}
     with:
       send-alarm: ${{ needs.auto-upgrade-pyright.result != 'success' }}
-      message: "WARNING: 'Auto upgrade pyright' failed. run_id=${{ github.run_id }}."
+      message: "WARNING: pywhlobf 'Auto upgrade pyright' failed. run_id=${{ github.run_id }}."
     secrets:
       webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}

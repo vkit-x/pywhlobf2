@@ -17,6 +17,6 @@ jobs:
     if: ${{ always() }}
     with:
       send-alarm: ${{ needs.call-workflow-type-checking.result != 'success' || needs.call-workflow-test.result != 'success' }}
-      message: "WARNING: 'Test every hour' failed. run_id=${{ github.run_id }}."
+      message: "WARNING: pywhlobf 'Test every hour' failed. run_id=${{ github.run_id }}."
     secrets:
       webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}
