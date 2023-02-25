@@ -11,8 +11,7 @@ class CppGeneratorConfig:
     # See:
     # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#Cython.Build.cythonize
     # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-directives
-    language: str = 'c++'
-    compiler_directives: Mapping[str, Union[bool, str]] = {'language_level': '3'}
+    compiler_directives: Mapping[str, Union[bool, str]] = attrs.field(factory=dict)
     options: Mapping[str, Union[bool, int, str]] = attrs.field(factory=dict)
 
 
@@ -29,10 +28,16 @@ class CppGenerator:
         py_file = working_py_file
 
         # The `cythonize` function generate a c++ file alongside.
+        compiler_directives = dict(self.config.compiler_directives)
+        # NOTE: Make sure you know what you are doing if you pass the `language_level`
+        if 'language_level' not in compiler_directives:
+            compiler_directives['language_level'] = '3'
+
         ext_modules = cythonize(
             module_list=[str(py_file)],
-            language=self.config.language,
-            compiler_directives=self.config.compiler_directives,
+            # NOTE: Passing language will trigger a warning message, that is ok.
+            language='c++',
+            compiler_directives=compiler_directives,
             **self.config.options,
         )
         print(ext_modules)
