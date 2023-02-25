@@ -1,0 +1,22 @@
+name: (Procedure) Test every hour
+on:
+  schedule:
+    - cron: "0 */1 * * *"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  call-workflow-type-checking:
+    uses: ./.github/workflows/workflow-type-checking.yaml
+  call-workflow-test:
+    uses: ./.github/workflows/workflow-test.yaml
+  call-workflow-alarm:
+    uses: ./.github/workflows/workflow-alarm.yaml
+    needs: [call-workflow-type-checking, call-workflow-test]
+    if: ${{ always() }}
+    with:
+      send-alarm: ${{ needs.call-workflow-type-checking.result != 'success' || needs.call-workflow-test.result != 'success' }}
+      message: "WARNING: 'Test every hour' failed. run_id=${{ github.run_id }}."
+    secrets:
+      webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}
