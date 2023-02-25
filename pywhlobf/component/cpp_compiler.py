@@ -1,4 +1,4 @@
-from typing import Mapping, Union
+# from typing import Mapping, Union
 import attrs
 
 
