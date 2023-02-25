@@ -29,7 +29,7 @@ class CppGenerator:
 
         # The `cythonize` function generate a c++ file alongside.
         compiler_directives = dict(self.config.compiler_directives)
-        # NOTE: Make sure you know what you are doing if you pass the `language_level`
+        # NOTE: Make sure you know what you are doing if you pass the `language_level`.
         if 'language_level' not in compiler_directives:
             compiler_directives['language_level'] = '3'
 
