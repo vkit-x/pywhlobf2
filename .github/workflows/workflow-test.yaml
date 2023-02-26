@@ -16,6 +16,9 @@ jobs:
         test_legacy_deps:
           - "yes"
           - "no"
+        test_cython3:
+          - "yes"
+          - "no"
         exclude:
           # Takes too much time to build from source.
           - python_abi: "cp310-cp310"
@@ -73,7 +76,14 @@ jobs:
         run: |
           # Install with the latest dependencies.
           pip install -e .
-
+        if: matrix.test_cython3 == 'no'
+      - name: Install (cython3).
+        run: |
+          # Install with the latest dependencies.
+          pip install -e .'[cython3]'
+        if: matrix.test_cython3 == 'yes'
+      - name: Install tools for testing.
+        run: |
           # yapf & flake8.
           pip install yapf flake8
           update-alternatives --install /usr/bin/yapf yapf /opt/python/${{ matrix.python_abi }}/bin/yapf 0
