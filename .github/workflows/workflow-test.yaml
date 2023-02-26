@@ -25,6 +25,9 @@ jobs:
             test_legacy_deps: "yes"
           - python_abi: "cp311-cp311"
             test_legacy_deps: "yes"
+          # Cannot test cython3 and legacy deps at the same time.
+          - test_cython3: "yes"
+            test_legacy_deps: "yes"
     container:
       image: ${{ matrix.image }}
     steps:
