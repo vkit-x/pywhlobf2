@@ -91,6 +91,10 @@ jobs:
           export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
 
+          # Install wget.
+          apt update
+          apt install -y wget
+
           # Download & unzip wheel 0.37.1
           mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
           wget \
