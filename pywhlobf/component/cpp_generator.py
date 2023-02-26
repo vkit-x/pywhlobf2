@@ -28,6 +28,10 @@ class CppGenerator:
         shutil.copyfile(py_file, working_py_file)
         py_file = working_py_file
 
+        cpp_file = py_file.with_suffix('.cpp')
+        # The `cythonize` function behave abnormally if the cpp file exists.
+        cpp_file.unlink(missing_ok=True)
+
         # The `cythonize` function generate a c++ file alongside.
         compiler_directives = dict(self.config.compiler_directives)
         # NOTE: Make sure you know what you are doing if you pass the `language_level`.
@@ -45,7 +49,7 @@ class CppGenerator:
         assert len(ext_modules) == 1
         ext_module: Extension = ext_modules[0]
 
-        cpp_file = py_file.with_suffix('.cpp')
+        # Make sure the cpp file is generated.
         assert cpp_file.is_file()
 
         return cpp_file, ext_module
