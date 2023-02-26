@@ -4,6 +4,7 @@ import shutil
 
 import attrs
 from Cython.Build.Dependencies import cythonize
+from distutils.extension import Extension
 
 
 @attrs.define
@@ -42,7 +43,7 @@ class CppGenerator:
         )
         assert ext_modules is not None
         assert len(ext_modules) == 1
-        ext_module = ext_modules[0]
+        ext_module: Extension = ext_modules[0]
 
         cpp_file = py_file.with_suffix('.cpp')
         assert cpp_file.is_file()

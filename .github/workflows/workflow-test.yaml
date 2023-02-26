@@ -86,8 +86,11 @@ jobs:
         run: |
           yapf -d -r pywhlobf && flake8 pywhlobf
         if: matrix.test_legacy_deps == 'no' && matrix.python_abi == 'cp38-cp38'
-      - name: Prepare test data.
+      - name: Prepare test data & env.
         run: |
+          export PYWHLOBF_ROOT=$(pwd)
+          echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $GITHUB_ENV
+
           export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
 
