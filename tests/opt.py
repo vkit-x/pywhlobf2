@@ -8,7 +8,7 @@ from Cython.Compiler.Version import version as cython_version
 
 def get_data_folder(file: str):
     proc = subprocess.run(
-        f'$PYWHLOBF_ROOT/.direnv/bin/pyproject-data-folder "$PYWHLOBF_ROOT" "$PYWHLOBF_DATA" "{file}"',
+        f'$PYWHLOBF_ROOT/.direnv/bin/pyproject-data-folder "$PYWHLOBF_ROOT" "$PYWHLOBF_DATA" "{file}"',  # noqa
         shell=True,
         capture_output=True,
         text=True,
