@@ -1,0 +1,88 @@
+name: (Procedure) Auto upgrade pyright
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "yes" to confirm'
+        required: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  auto-upgrade-pyright:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check if pyright has new upgrade
+        id: check-pyright
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+              && [ "${{ github.event.inputs.confirm }}" != "yes" ]
+          then
+            echo "confirm != yes, abort."
+            echo "ABORT=1" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Get the latest pyright version.
+          export PAGER=
+          PYRIGHT_LATEST_VERSION=$(gh release view --repo microsoft/pyright --json tagName --template '{{.tagName}}')
+          if [ -z "$PYRIGHT_LATEST_VERSION" ] ; then
+            echo "Failed to get PYRIGHT_LATEST_VERSION, abort."
+            echo "ABORT=1" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "PYRIGHT_LATEST_VERSION=${PYRIGHT_LATEST_VERSION}"
+
+          # Get the current pyright version.
+          PYRIGHT_CURRENT_VERSION=$(python -c 'import re; text = open(".github/workflows/workflow-type-checking.yaml").read(); print(re.search(r"pyright@(.+)", text).group(1))')
+          echo "PYRIGHT_CURRENT_VERSION=${PYRIGHT_CURRENT_VERSION}"
+
+          if [ "$PYRIGHT_CURRENT_VERSION" = "$PYRIGHT_LATEST_VERSION" ] ; then
+            echo "Not need to upgrade pyright."
+            echo "ABORT=1" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Will trigger upgrade."
+          echo "ABORT=0" >> $GITHUB_OUTPUT
+          echo "PYRIGHT_LATEST_VERSION=${PYRIGHT_LATEST_VERSION}" >> $GITHUB_OUTPUT
+          echo "PYRIGHT_CURRENT_VERSION=${PYRIGHT_CURRENT_VERSION}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.HUNTZHAN_PAT }}
+          GH_REPO: ${{ github.repository }}
+      - name: Change pyright version
+        run: |
+          PYRIGHT_LATEST_VERSION="${{ steps.check-pyright.outputs.PYRIGHT_LATEST_VERSION }}"
+          PYRIGHT_CURRENT_VERSION="${{ steps.check-pyright.outputs.PYRIGHT_CURRENT_VERSION }}"
+
+          SED_PATTERN="s|pyright@${PYRIGHT_CURRENT_VERSION}|pyright@${PYRIGHT_LATEST_VERSION}|g"
+          sed -i "$SED_PATTERN" .github/workflows/workflow-type-checking.yaml
+        if: steps.check-pyright.outputs.ABORT != 1
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        if: steps.check-pyright.outputs.ABORT != 1
+        with:
+          token: ${{ secrets.HUNTZHAN_PAT }}
+          branch: upgrade-pyright-to-${{ steps.check-pyright.outputs.PYRIGHT_LATEST_VERSION }}
+          title: "ci: automatically upgrade pyright to ${{ steps.check-pyright.outputs.PYRIGHT_LATEST_VERSION }}."
+          commit-message: "ci: automatically upgrade pyright to ${{ steps.check-pyright.outputs.PYRIGHT_LATEST_VERSION }}."
+          body: ""
+      - name: Enable auto signoff
+        run: |
+          gh pr merge --squash --auto
+        if: steps.check-pyright.outputs.ABORT != 1
+        env:
+          GH_TOKEN: ${{ secrets.HUNTZHAN_PAT }}
+          GH_REPO: ${{ github.repository }}
+  call-workflow-alarm:
+    uses: ./.github/workflows/workflow-alarm.yaml
+    needs: [auto-upgrade-pyright]
+    if: ${{ always() }}
+    with:
+      send-alarm: ${{ needs.auto-upgrade-pyright.result != 'success' }}
+      message: "WARNING: pywhlobf 'Auto upgrade pyright' failed. run_id=${{ github.run_id }}."
+    secrets:
+      webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}
