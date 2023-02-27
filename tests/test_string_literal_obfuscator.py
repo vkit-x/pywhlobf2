@@ -6,7 +6,7 @@ from pywhlobf.component.string_literal_obfuscator import (
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
-def test_test_string_literal_obfuscator():
+def test_string_literal_obfuscator():
     output_fd = get_test_output_fd()
     test_py_file = get_test_py_file()
 
