@@ -110,7 +110,6 @@ jobs:
           # Install wget.
           apt update
           apt install -y wget
-          apt install -y gcc-9
 
           # Download & unzip wheel 0.37.1
           mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
