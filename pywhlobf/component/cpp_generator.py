@@ -4,6 +4,7 @@ import shutil
 
 import attrs
 from Cython.Build.Dependencies import cythonize
+from Cython.Compiler import Options
 from distutils.extension import Extension
 
 
@@ -12,8 +13,10 @@ class CppGeneratorConfig:
     # See:
     # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#Cython.Build.cythonize
     # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-directives
+    # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-options
     compiler_directives: Mapping[str, Union[bool, str]] = attrs.field(factory=dict)
-    options: Mapping[str, Union[bool, int, str]] = attrs.field(factory=dict)
+    cythonize_options: Mapping[str, Union[bool, int, str]] = attrs.field(factory=dict)
+    compiler_options: Mapping[str, Union[bool, int, str]] = attrs.field(factory=dict)
 
 
 class CppGenerator:
@@ -38,12 +41,17 @@ class CppGenerator:
         if 'language_level' not in compiler_directives:
             compiler_directives['language_level'] = '3'
 
+        # Set compiler options.
+        for key, value in self.config.compiler_options.items():
+            assert hasattr(Options, key)
+            setattr(Options, key, value)
+
         ext_modules = cythonize(
             module_list=[str(py_file)],
             # NOTE: Passing language will trigger a warning message, that is ok.
             language='c++',
             compiler_directives=compiler_directives,
-            **self.config.options,
+            **self.config.cythonize_options,
         )
         assert ext_modules is not None
         assert len(ext_modules) == 1

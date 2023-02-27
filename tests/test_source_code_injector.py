@@ -13,11 +13,11 @@ def test_source_code_injector():
     cpp_generator = CppGenerator(CppGeneratorConfig())
     cpp_file, _ = cpp_generator.run(test_py_file, output_fd)
 
-    string_literal_obfuscator = SourceCodeInjector(
+    source_code_injector = SourceCodeInjector(
         SourceCodeInjectorConfig(fernet_key='WwAPKBMXKl-I43L4u8B5WD9xoperM9qhXDlLVWRFkiY=')
     )
-    good = string_literal_obfuscator.run(
+    activated = source_code_injector.run(
         py_file=test_py_file,
         cpp_file=cpp_file,
     )
-    assert good
+    assert activated
