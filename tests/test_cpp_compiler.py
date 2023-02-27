@@ -1,3 +1,6 @@
+import importlib.util
+import sys
+import traceback
 from pywhlobf.component.cpp_generator import CppGeneratorConfig, CppGenerator
 from pywhlobf.component.string_literal_obfuscator import (
     StringLiteralObfuscatorConfig,
@@ -45,3 +48,16 @@ def test_cpp_compiler():
         source_code_injector_activated=source_code_injector_activated,
     )
     assert compiled_lib_file.is_file()
+
+    module_name = compiled_lib_file.stem.split('.')[0]
+    spec = importlib.util.spec_from_file_location(module_name, str(compiled_lib_file))
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except ImportError:
+        encrypted_traceback = traceback.format_exc()
+        print(encrypted_traceback)
+        assert 'wheel' not in encrypted_traceback
+        assert encrypted_traceback.count('(pywhlobf') == 3
