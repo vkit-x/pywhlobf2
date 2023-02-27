@@ -70,10 +70,10 @@ class StringLiteralObfuscator:
 
     def run(self, cpp_file: Path):
         if not self.config.enable:
-            return None
+            return False, None
 
         # Backup for debugging.
-        shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_source_code_injector'))
+        shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_string_literal_obfuscator'))
 
         # Change cpp file inplace.
         code = cpp_file.read_text()
@@ -86,4 +86,4 @@ class StringLiteralObfuscator:
         include_fd = Path(__file__).parent / 'string_literal_obfuscator_asset'
         assert (include_fd / 'obfuscate.h').is_file()
 
-        return include_fd
+        return True, include_fd
