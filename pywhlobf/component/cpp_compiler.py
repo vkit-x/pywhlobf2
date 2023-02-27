@@ -28,7 +28,8 @@ class CppCompiler:
     ):
         # Set -std.
         if source_code_injector_activated:
-            ext_module.extra_compile_args.append('-std=c++17')
+            ext_module.extra_compile_args.extend(['-std=c++17', '-lstdc++fs'])
+            # TODO: https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem  # noqa
         elif string_literal_obfuscator_activated:
             ext_module.extra_compile_args.append('-std=c++14')
         else:
