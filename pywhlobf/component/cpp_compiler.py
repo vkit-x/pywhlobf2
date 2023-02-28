@@ -33,7 +33,7 @@ class CppCompiler:
         if source_code_injector_activated:
             ext_module.extra_compile_args.append('-std=c++17')
 
-            if os.name != 'nt':
+            if os.name == 'posix':
                 # POSIX.
                 cxx = sysconfig.get_config_var('CXX')
                 assert cxx
@@ -77,8 +77,11 @@ class CppCompiler:
                 else:
                     raise NotImplementedError()
 
-            else:
+            elif os.name == 'nt':
                 # Windows.
+                raise NotImplementedError()
+
+            else:
                 raise NotImplementedError()
 
         elif string_literal_obfuscator_activated:
@@ -108,12 +111,14 @@ class CppCompiler:
         os.chdir(cwd)
 
         # Get the path of shared library.
-        if os.name != 'nt':
-            # Non-Windows.
+        if os.name == 'posix':
+            # POSIX.
             ext = '.so'
-        else:
+        elif os.name == 'nt':
             # Windows.
             ext = '.pyd'
+        else:
+            raise NotImplementedError()
 
         compiled_lib_files = tuple(working_fd.glob(f'{cpp_file.stem}*{ext}'))
         assert len(compiled_lib_files) == 1
