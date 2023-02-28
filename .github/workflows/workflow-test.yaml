@@ -178,17 +178,17 @@ jobs:
       - name: Install.
         run: |
           # Install with the latest dependencies.
-          pip install -e .
+          python -m pip install -e .
         if: matrix.test_cython3 == 'no'
       - name: Install (cython3).
         run: |
           # Install with the latest dependencies.
-          pip install -e .'[cython3]'
+          python -m pip install -e ".[cython3]"
         if: matrix.test_cython3 == 'yes'
       - name: Install tools for testing.
         run: |
           # pytest.
-          pip install 'pytest<7.2.0' pytest-parallel pytest-env
+          python -m pip install 'pytest<7.2.0' pytest-parallel pytest-env
       - name: Prepare test data & env.
         run: |
           export PYWHLOBF_ROOT=$(pwd)
