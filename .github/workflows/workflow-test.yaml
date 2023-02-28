@@ -2,7 +2,7 @@ name: (Workflow) Test
 on:
   workflow_call:
 jobs:
-  test:
+  test_linux:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -34,11 +34,11 @@ jobs:
           - image: "quay.io/pypa/manylinux_2_28_x86_64"
             python_abi: "cp38-cp38"
             test_legacy_deps: "no"
-            test_cython3: 'no'
+            test_cython3: "no"
           - image: "quay.io/pypa/manylinux_2_28_x86_64"
             python_abi: "cp38-cp38"
             test_legacy_deps: "no"
-            test_cython3: 'yes'
+            test_cython3: "yes"
     container:
       image: ${{ matrix.image }}
     steps:
@@ -129,6 +129,63 @@ jobs:
           yum makecache --refresh
           yum -y install wget
         if: matrix.image == 'quay.io/pypa/manylinux_2_28_x86_64'
+      - name: Prepare test data & env.
+        run: |
+          export PYWHLOBF_ROOT=$(pwd)
+          echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $GITHUB_ENV
+
+          export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
+          echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
+
+          # Download & unzip wheel 0.37.1
+          mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
+          wget \
+            https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl \
+            -O "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/wheel-0.37.1-py2.py3-none-any.whl"
+          unzip \
+            "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/wheel-0.37.1-py2.py3-none-any.whl" \
+            -d "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
+
+          # Download & unzip wheel 0.38.4
+          mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/"
+          wget \
+            https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl \
+            -O "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/wheel-0.38.4-py3-none-any.whl"
+          unzip \
+            "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/wheel-0.38.4-py3-none-any.whl" \
+            -d "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/"
+      - name: Test
+        run: |
+          # Test.
+          pytest
+  test_macos:
+    runs-on: macos-11
+    strategy:
+      matrix:
+        python_version:
+          - "3.8"
+        test_cython3:
+          - "yes"
+          - "no"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Install.
+        run: |
+          # Install with the latest dependencies.
+          pip install -e .
+        if: matrix.test_cython3 == 'no'
+      - name: Install (cython3).
+        run: |
+          # Install with the latest dependencies.
+          pip install -e .'[cython3]'
+        if: matrix.test_cython3 == 'yes'
+      - name: Install tools for testing.
+        run: |
+          # pytest.
+          pip install 'pytest<7.2.0' pytest-parallel pytest-env
       - name: Prepare test data & env.
         run: |
           export PYWHLOBF_ROOT=$(pwd)
