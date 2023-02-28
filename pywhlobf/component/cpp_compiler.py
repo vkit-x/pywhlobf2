@@ -2,6 +2,7 @@ from typing import Sequence
 from pathlib import Path
 import os
 import subprocess
+import re
 from distutils.extension import Extension
 from distutils.core import setup
 import sysconfig
@@ -32,40 +33,52 @@ class CppCompiler:
         if source_code_injector_activated:
             ext_module.extra_compile_args.append('-std=c++17')
 
-            cmd = sysconfig.get_config_var('LDCXXSHARED')
-            assert isinstance(cmd, str)
+            if os.name != 'nt':
+                # POSIX.
+                cxx = sysconfig.get_config_var('CXX')
+                assert cxx
 
-            if cmd.startswith('g++'):
-                # https://askubuntu.com/questions/1256440/how-to-get-libstdc-with-c17-filesystem-headers-on-ubuntu-18-bionic
-                # NOTE: It's ok to pass `-lstdc++fs` to GCC > 9.1.
-                ext_module.extra_link_args.append('-lstdc++fs')
-
-            elif cmd.startswith('clang++'):
-                # Get libc++ version.
                 result = subprocess.run(
+                    # https://en.cppreference.com/w/cpp/header/ciso646
+                    # NOTE: It's fine since we don't use c++20.
                     'printf "#include <ciso646>\nint main () {}" '
-                    '| clang -E -stdlib=libc++ -x c++ -dM - '
-                    '| grep _LIBCPP_VERSION',
+                    f'| {cxx} -E -x c++ -dM -',
                     shell=True,
                     capture_output=True,
                     check=True,
                     text=True,
                 )
                 stdout = result.stdout
-                assert '_LIBCPP_VERSION' in stdout
-                # VRRR format.
-                libcpp_version = stdout.split()[-1]
-                libcpp_major_version = int(libcpp_version[:-3])
-                # https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem
-                if libcpp_major_version < 7:
-                    ext_module.extra_link_args.append('-lc++experimental')
-                elif libcpp_major_version < 9:
-                    ext_module.extra_link_args.append('-lc++fs')
 
-            elif cmd.startswith('msvc?'):
-                raise NotImplementedError()
+                libcpp_version_match = re.search(r'_LIBCPP_VERSION (\d+)', stdout)
+                glibcpp_version_match = re.search(r'__GLIBCXX__', stdout)
+
+                # https://stuff.mit.edu/afs/athena/project/rhel-doc/3/rhel-cpp-en-3/predefined-macros.html
+                gunc_match = re.search(r'__GNUC__ (\d+)', stdout)
+                gunc_minor_match = re.search(r'__GNUC_MINOR__ (\d+)', stdout)
+
+                if libcpp_version_match:
+                    # VRRR format.
+                    libcpp_version = libcpp_version_match.group(1)
+                    libcpp_major_version = int(libcpp_version[:-3])
+                    # https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem
+                    if libcpp_major_version < 7:
+                        ext_module.extra_link_args.append('-lc++experimental')
+                    elif libcpp_major_version < 9:
+                        ext_module.extra_link_args.append('-lc++fs')
+
+                elif glibcpp_version_match:
+                    assert gunc_match and gunc_minor_match
+                    major = int(gunc_match.group(1))
+                    minor = int(gunc_minor_match.group(1))
+                    if major < 9 or major == 9 and minor < 1:
+                        ext_module.extra_link_args.append('-lstdc++fs')
+
+                else:
+                    raise NotImplementedError()
 
             else:
+                # Windows.
                 raise NotImplementedError()
 
         elif string_literal_obfuscator_activated:
