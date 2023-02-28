@@ -32,18 +32,28 @@ jobs:
         include:
           # GCC 12.
           - image: "quay.io/pypa/manylinux_2_28_x86_64"
-          - python_abi: "cp38-cp38"
+            python_abi: "cp38-cp38"
+            test_legacy_deps: "no"
     container:
       image: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v3
-      - name: Setup python/pip.
+      - name: Setup python/pip. (default)
         run: |
           update-alternatives --install /usr/bin/python python /opt/python/${{ matrix.python_abi }}/bin/python 0
           python --version
           update-alternatives --install /usr/bin/pip pip /opt/python/${{ matrix.python_abi }}/bin/pip 0
           pip install -U pip
           pip --version
+        if: matrix.image != 'quay.io/pypa/manylinux_2_28_x86_64'
+      - name: Setup python/pip. (default)
+        run: |
+          ln -s /opt/python/${{ matrix.python_abi }}/bin/python /usr/bin/python
+          python --version
+          ln -s /opt/python/${{ matrix.python_abi }}/bin/pip /usr/bin/pip
+          pip install -U pip
+          pip --version
+        if: matrix.image == 'quay.io/pypa/manylinux_2_28_x86_64'
       - name: Set to the legacy dependencies.
         run: |
           PYTHON_SCRIPT=$(
