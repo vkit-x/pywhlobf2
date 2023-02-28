@@ -2,11 +2,11 @@ from typing import Sequence
 from pathlib import Path
 import os
 import subprocess
-
-import attrs
 from distutils.extension import Extension
 from distutils.core import setup
-from distutils import sysconfig
+import sysconfig
+
+import attrs
 
 
 @attrs.define
