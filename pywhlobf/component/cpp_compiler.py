@@ -1,6 +1,7 @@
 from typing import Sequence
 from pathlib import Path
 import os
+import subprocess
 
 import attrs
 from distutils.extension import Extension
@@ -30,15 +31,46 @@ class CppCompiler:
         # Set -std.
         if source_code_injector_activated:
             ext_module.extra_compile_args.append('-std=c++17')
-            # TODO: https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem  # noqa
-            # https://askubuntu.com/questions/1256440/how-to-get-libstdc-with-c17-filesystem-headers-on-ubuntu-18-bionic
-            # TODO: This is a Hack! New gcc might still fail.
+
             cmd = sysconfig.get_config_var('LDCXXSHARED')
             assert isinstance(cmd, str)
+
             if cmd.startswith('g++'):
+                # https://askubuntu.com/questions/1256440/how-to-get-libstdc-with-c17-filesystem-headers-on-ubuntu-18-bionic
+                # NOTE: It's ok to pass `-lstdc++fs` to GCC > 9.1.
                 ext_module.extra_link_args.append('-lstdc++fs')
+
+            elif cmd.startswith('clang++'):
+                # Get libc++ version.
+                result = subprocess.run(
+                    'printf "#include <ciso646>\nint main () {}" '
+                    '| clang -E -stdlib=libc++ -x c++ -dM - '
+                    '| grep _LIBCPP_VERSION',
+                    shell=True,
+                    capture_output=True,
+                    check=True,
+                    text=True,
+                )
+                stdout = result.stdout
+                assert '_LIBCPP_VERSION' in stdout
+                # VRRR format.
+                libcpp_version = stdout.split()[-1]
+                libcpp_major_version = int(libcpp_version[:-3])
+                # https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem
+                if libcpp_major_version < 7:
+                    ext_module.extra_link_args.append('-lc++experimental')
+                elif libcpp_major_version < 9:
+                    ext_module.extra_link_args.append('-lc++fs')
+
+            elif cmd.startswith('msvc?'):
+                raise NotImplementedError()
+
+            else:
+                raise NotImplementedError()
+
         elif string_literal_obfuscator_activated:
             ext_module.extra_compile_args.append('-std=c++14')
+
         else:
             ext_module.extra_compile_args.append('-std=c++11')
 
