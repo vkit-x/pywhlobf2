@@ -34,6 +34,11 @@ jobs:
           - image: "quay.io/pypa/manylinux_2_28_x86_64"
             python_abi: "cp38-cp38"
             test_legacy_deps: "no"
+            test_cython3: 'no'
+          - image: "quay.io/pypa/manylinux_2_28_x86_64"
+            python_abi: "cp38-cp38"
+            test_legacy_deps: "no"
+            test_cython3: 'yes'
     container:
       image: ${{ matrix.image }}
     steps:
@@ -46,7 +51,7 @@ jobs:
           pip install -U pip
           pip --version
         if: matrix.image != 'quay.io/pypa/manylinux_2_28_x86_64'
-      - name: Setup python/pip. (default)
+      - name: Setup python/pip. (manylinux_2_28_x86_64)
         run: |
           ln -s /opt/python/${{ matrix.python_abi }}/bin/python /usr/bin/python
           python --version
