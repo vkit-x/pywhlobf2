@@ -157,7 +157,7 @@ jobs:
       - name: Test
         run: |
           # Test.
-          pytest -s
+          pytest -rx
   test_macos_and_windows:
     strategy:
       matrix:
@@ -249,4 +249,4 @@ jobs:
       - name: Test
         run: |
           # Test.
-          python -m pytest -s
+          python -m pytest -rx

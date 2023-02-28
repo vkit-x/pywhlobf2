@@ -78,6 +78,8 @@ class CppCompiler:
 
             elif os.name == 'nt':
                 # Windows.
+                # This works for Visual Studio >= 2019.
+                # https://learn.microsoft.com/en-us/cpp/standard-library/filesystem?view=msvc-170
                 ext_module.extra_compile_args.append('/std:c++17')
 
             else:
