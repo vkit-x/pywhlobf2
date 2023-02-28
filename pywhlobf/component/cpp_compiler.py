@@ -31,9 +31,8 @@ class CppCompiler:
     ):
         # Set -std.
         if source_code_injector_activated:
-            ext_module.extra_compile_args.append('-std=c++17')
-
             if os.name == 'posix':
+                ext_module.extra_compile_args.append('-std=c++17')
                 # POSIX.
                 cxx = sysconfig.get_config_var('CXX')
                 assert cxx
@@ -79,16 +78,30 @@ class CppCompiler:
 
             elif os.name == 'nt':
                 # Windows.
-                print('TODO')
+                ext_module.extra_compile_args.append('/std:c++17')
 
             else:
                 raise NotImplementedError()
 
         elif string_literal_obfuscator_activated:
-            ext_module.extra_compile_args.append('-std=c++14')
+            if os.name == 'posix':
+                # POSIX.
+                ext_module.extra_compile_args.append('-std=c++14')
+            elif os.name == 'nt':
+                # Windows.
+                ext_module.extra_compile_args.append('/std:c++14')
+            else:
+                raise NotImplementedError()
 
         else:
-            ext_module.extra_compile_args.append('-std=c++11')
+            if os.name == 'posix':
+                # POSIX.
+                ext_module.extra_compile_args.append('-std=c++11')
+            elif os.name == 'nt':
+                # Windows.
+                ext_module.extra_compile_args.append('/std:c++11')
+            else:
+                raise NotImplementedError()
 
         # Add include_dirs.
         for include_fd in include_fds:
