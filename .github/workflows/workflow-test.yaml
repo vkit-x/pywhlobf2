@@ -189,6 +189,12 @@ jobs:
         run: |
           # pytest.
           python -m pip install 'pytest<7.2.0' pytest-parallel pytest-env
+        if: matrix.os == 'macos-11'
+      - name: Install tools for testing. (windows-2019)
+        run: |
+          # pytest.
+          python -m pip install 'pytest<7.2.0'
+        if: matrix.os == 'windows-2019'
       - name: Prepare test data & env.
         run: |
           export PYWHLOBF_ROOT=$(pwd)
