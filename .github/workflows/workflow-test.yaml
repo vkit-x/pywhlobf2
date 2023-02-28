@@ -2,11 +2,12 @@ name: (Workflow) Test
 on:
   workflow_call:
 jobs:
-  test:
+  test_linux:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         image:
+          # GCC 6.
           - "quay.io/pypa/manylinux_2_24_x86_64"
         python_abi:
           - "cp38-cp38"
@@ -28,17 +29,36 @@ jobs:
           # Cannot test cython3 and legacy deps at the same time.
           - test_cython3: "yes"
             test_legacy_deps: "yes"
+        include:
+          # GCC 12.
+          - image: "quay.io/pypa/manylinux_2_28_x86_64"
+            python_abi: "cp38-cp38"
+            test_legacy_deps: "no"
+            test_cython3: "no"
+          - image: "quay.io/pypa/manylinux_2_28_x86_64"
+            python_abi: "cp38-cp38"
+            test_legacy_deps: "no"
+            test_cython3: "yes"
     container:
       image: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v3
-      - name: Setup python/pip.
+      - name: Setup python/pip. (default)
         run: |
           update-alternatives --install /usr/bin/python python /opt/python/${{ matrix.python_abi }}/bin/python 0
           python --version
           update-alternatives --install /usr/bin/pip pip /opt/python/${{ matrix.python_abi }}/bin/pip 0
           pip install -U pip
           pip --version
+        if: matrix.image != 'quay.io/pypa/manylinux_2_28_x86_64'
+      - name: Setup python/pip. (manylinux_2_28_x86_64)
+        run: |
+          ln -s /opt/python/${{ matrix.python_abi }}/bin/python /usr/bin/python
+          python --version
+          ln -s /opt/python/${{ matrix.python_abi }}/bin/pip /usr/bin/pip
+          pip install -U pip
+          pip --version
+        if: matrix.image == 'quay.io/pypa/manylinux_2_28_x86_64'
       - name: Set to the legacy dependencies.
         run: |
           PYTHON_SCRIPT=$(
@@ -99,6 +119,16 @@ jobs:
         run: |
           yapf -d -r pywhlobf && flake8 pywhlobf
         if: matrix.test_legacy_deps == 'no' && matrix.python_abi == 'cp38-cp38'
+      - name: Install wget. (default)
+        run: |
+          apt update
+          apt install -y wget
+        if: matrix.image != 'quay.io/pypa/manylinux_2_28_x86_64'
+      - name: Install wget. (manylinux_2_28_x86_64)
+        run: |
+          yum makecache --refresh
+          yum -y install wget
+        if: matrix.image == 'quay.io/pypa/manylinux_2_28_x86_64'
       - name: Prepare test data & env.
         run: |
           export PYWHLOBF_ROOT=$(pwd)
@@ -106,10 +136,6 @@ jobs:
 
           export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
-
-          # Install wget.
-          apt update
-          apt install -y wget
 
           # Download & unzip wheel 0.37.1
           mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
@@ -131,4 +157,96 @@ jobs:
       - name: Test
         run: |
           # Test.
-          pytest
+          pytest -rx
+  test_macos_and_windows:
+    strategy:
+      matrix:
+        os:
+          - "macos-11"
+          - "windows-2019"
+        python_version:
+          - "3.8"
+        test_cython3:
+          - "yes"
+          - "no"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Install.
+        run: |
+          # Install with the latest dependencies.
+          python -m pip install -e .
+        if: matrix.test_cython3 == 'no'
+      - name: Install (cython3).
+        run: |
+          # Install with the latest dependencies.
+          python -m pip install -e ".[cython3]"
+        if: matrix.test_cython3 == 'yes'
+      - name: Install tools for testing.
+        run: |
+          # pytest.
+          python -m pip install 'pytest<7.2.0' pytest-parallel pytest-env
+        if: matrix.os == 'macos-11'
+      - name: Install tools for testing. (windows-2019)
+        run: |
+          # pytest.
+          python -m pip install 'pytest<7.2.0'
+          ((Get-Content -path setup.cfg -Raw) -replace '--workers auto','') | Set-Content -Path setup.cfg
+        if: matrix.os == 'windows-2019'
+      - name: Prepare test data & env.
+        run: |
+          export PYWHLOBF_ROOT=$(pwd)
+          echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $GITHUB_ENV
+
+          export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
+          echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
+
+          # Download & unzip wheel 0.37.1
+          mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
+          wget \
+            https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl \
+            -O "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/wheel-0.37.1-py2.py3-none-any.whl"
+          unzip \
+            "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/wheel-0.37.1-py2.py3-none-any.whl" \
+            -d "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"
+
+          # Download & unzip wheel 0.38.4
+          mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/"
+          wget \
+            https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl \
+            -O "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/wheel-0.38.4-py3-none-any.whl"
+          unzip \
+            "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/wheel-0.38.4-py3-none-any.whl" \
+            -d "${PYWHLOBF_DATA}/test-data/wheel-0.38.4/"
+        if: matrix.os == 'macos-11'
+      - name: Prepare test data & env. (windows-2019)
+        run: |
+          $PYWHLOBF_ROOT = $(pwd)
+          echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $env:GITHUB_ENV
+
+          $PYWHLOBF_DATA = (Join-Path -Path $(pwd) -ChildPath 'tmp-pywhlobf-data')
+          echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $env:GITHUB_ENV
+
+          # Download & unzip wheel 0.37.1
+          $OUTPUT_DIR = (New-Item -Path (Join-Path -Path $PYWHLOBF_DATA "test-data/wheel-0.37.1") -Type Directory -Force)
+          $WHEEL_FILE = (Join-Path -Path $OUTPUT_DIR "wheel-0.37.1-py2.py3-none-any.whl")
+          Invoke-WebRequest `
+            https://files.pythonhosted.org/packages/27/d6/003e593296a85fd6ed616ed962795b2f87709c3eee2bca4f6d0fe55c6d00/wheel-0.37.1-py2.py3-none-any.whl `
+            -Outfile $WHEEL_FILE
+          Expand-Archive -Path $WHEEL_FILE -DestinationPath $OUTPUT_DIR
+
+          # Download & unzip wheel 0.38.4
+          $OUTPUT_DIR = (New-Item -Path (Join-Path -Path $PYWHLOBF_DATA "test-data/wheel-0.38.4") -Type Directory -Force)
+          $WHEEL_FILE = (Join-Path -Path $OUTPUT_DIR "wheel-0.38.4-py2.py3-none-any.whl")
+          Invoke-WebRequest `
+            https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl `
+            -Outfile $WHEEL_FILE
+          Expand-Archive -Path $WHEEL_FILE -DestinationPath $OUTPUT_DIR
+        if: matrix.os == 'windows-2019'
+      - name: Test
+        run: |
+          # Test.
+          python -m pytest -rx

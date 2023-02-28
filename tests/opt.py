@@ -1,22 +1,21 @@
 import os
+import os.path
 import inspect
-import subprocess
 
 import iolite as io
 from Cython.Compiler.Version import version as cython_version
 
 
-def get_data_folder(file: str):
-    proc = subprocess.run(
-        f'$PYWHLOBF_ROOT/.direnv/bin/pyproject-data-folder "$PYWHLOBF_ROOT" "$PYWHLOBF_DATA" "{file}"',  # noqa
-        shell=True,
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 0
+def get_data_folder(code_path: str):
+    proj_root = os.getenv('PYWHLOBF_ROOT')
+    data_root = os.getenv('PYWHLOBF_DATA')
+    assert proj_root and data_root
 
-    data_folder = proc.stdout.strip()
-    assert data_folder
+    if os.path.isabs(code_path):
+        code_path = os.path.relpath(code_path, proj_root)
+
+    rel_folder = code_path.split('.')[0]
+    data_folder = os.path.join(data_root, rel_folder)
 
     io.folder(data_folder, touch=True)
 
