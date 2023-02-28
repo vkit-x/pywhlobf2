@@ -157,7 +157,7 @@ jobs:
       - name: Test
         run: |
           # Test.
-          pytest
+          pytest -s
   test_macos_and_windows:
     strategy:
       matrix:
@@ -249,6 +249,4 @@ jobs:
       - name: Test
         run: |
           # Test.
-          # DEBUG
-          python -m sysconfig
-          python -m pytest
+          python -m pytest -s

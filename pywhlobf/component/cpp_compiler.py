@@ -79,7 +79,7 @@ class CppCompiler:
 
             elif os.name == 'nt':
                 # Windows.
-                raise NotImplementedError()
+                print('TODO')
 
             else:
                 raise NotImplementedError()
