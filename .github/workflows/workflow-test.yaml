@@ -7,6 +7,7 @@ jobs:
     strategy:
       matrix:
         image:
+          # GCC 6.
           - "quay.io/pypa/manylinux_2_24_x86_64"
         python_abi:
           - "cp38-cp38"
@@ -28,6 +29,10 @@ jobs:
           # Cannot test cython3 and legacy deps at the same time.
           - test_cython3: "yes"
             test_legacy_deps: "yes"
+        include:
+          # GCC 12.
+          - image: "quay.io/pypa/manylinux_2_28_x86_64"
+          - python_abi: "cp38-cp38"
     container:
       image: ${{ matrix.image }}
     steps:
@@ -99,6 +104,16 @@ jobs:
         run: |
           yapf -d -r pywhlobf && flake8 pywhlobf
         if: matrix.test_legacy_deps == 'no' && matrix.python_abi == 'cp38-cp38'
+      - name: Install wget. (default)
+        run: |
+          apt update
+          apt install -y wget
+        if: matrix.image != 'quay.io/pypa/manylinux_2_28_x86_64'
+      - name: Install wget. (manylinux_2_28_x86_64)
+        run: |
+          yum makecache --refresh
+          yum -y install wget
+        if: matrix.image == 'quay.io/pypa/manylinux_2_28_x86_64'
       - name: Prepare test data & env.
         run: |
           export PYWHLOBF_ROOT=$(pwd)
@@ -106,10 +121,6 @@ jobs:
 
           export PYWHLOBF_DATA=$(pwd)/tmp-pywhlobf-data
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
-
-          # Install wget.
-          apt update
-          apt install -y wget
 
           # Download & unzip wheel 0.37.1
           mkdir -p "${PYWHLOBF_DATA}/test-data/wheel-0.37.1/"

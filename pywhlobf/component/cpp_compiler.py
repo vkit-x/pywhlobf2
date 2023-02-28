@@ -30,12 +30,13 @@ class CppCompiler:
         # Set -std.
         if source_code_injector_activated:
             ext_module.extra_compile_args.append('-std=c++17')
+            # TODO: https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem  # noqa
             # https://askubuntu.com/questions/1256440/how-to-get-libstdc-with-c17-filesystem-headers-on-ubuntu-18-bionic
+            # TODO: This is a Hack! New gcc might still fail.
             cmd = sysconfig.get_config_var('LDCXXSHARED')
             assert isinstance(cmd, str)
             if cmd.startswith('g++'):
                 ext_module.extra_link_args.append('-lstdc++fs')
-            # TODO: https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem  # noqa
         elif string_literal_obfuscator_activated:
             ext_module.extra_compile_args.append('-std=c++14')
         else:
