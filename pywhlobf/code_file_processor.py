@@ -52,11 +52,13 @@ class ExecutionContext:
     @contextmanager
     def guard(self):
         with self.stdout_file.open('w') as stdout_fout, self.stderr_file.open('w') as stderr_fout:
-            prev_stdout_fileno = os.dup(sys.stdout.fileno())
-            prev_stderr_fileno = os.dup(sys.stderr.fileno())
+            # DEBUG
+            if os.name != 'nt':
+                prev_stdout_fileno = os.dup(sys.stdout.fileno())
+                prev_stderr_fileno = os.dup(sys.stderr.fileno())
 
-            os.dup2(stdout_fout.fileno(), sys.stdout.fileno())
-            os.dup2(stderr_fout.fileno(), sys.stderr.fileno())
+                os.dup2(stdout_fout.fileno(), sys.stdout.fileno())
+                os.dup2(stderr_fout.fileno(), sys.stderr.fileno())
 
             try:
                 self.executed = True
@@ -68,8 +70,10 @@ class ExecutionContext:
                 stderr_fout.write(traceback.format_exc())
                 self.succeeded = False
 
-            os.dup2(prev_stdout_fileno, sys.stdout.fileno())
-            os.dup2(prev_stderr_fileno, sys.stderr.fileno())
+            # DEBUG
+            if os.name != 'nt':
+                os.dup2(prev_stdout_fileno, sys.stdout.fileno())
+                os.dup2(prev_stderr_fileno, sys.stderr.fileno())
 
     def get_logging_message(self, verbose: bool):
         lines = [
