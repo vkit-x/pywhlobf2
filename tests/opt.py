@@ -67,11 +67,9 @@ def get_test_py_file(new_name: Optional[str] = ''):
         )
 
     if new_name:
-        new_fd = io.folder(
-            '$PYWHLOBF_DATA/test-data/wheel-new',
-            expandvars=True,
-            touch=True,
-        )
+        new_fd = io.folder('$PYWHLOBF_DATA/test-data', expandvars=True, exists=True)
+        new_fd = new_fd / 'wheel-new'
+        new_fd.mkdir(exist_ok=True)
         new_test_py_file = io.file(new_fd / new_name)
         shutil.copyfile(test_py_file, new_test_py_file)
         test_py_file = new_test_py_file
