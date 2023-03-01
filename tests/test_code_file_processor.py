@@ -45,7 +45,7 @@ def test_execution_context_collection():
 
 def test_code_file_processor():
     working_fd = get_test_output_fd()
-    test_py_file = get_test_py_file('for_test_code_file_processor.py')
+    test_py_file = get_test_py_file()
 
     config = CodeFileProcessorConfig()
     config.source_code_injector_config.fernet_key = 'WwAPKBMXKl-I43L4u8B5WD9xoperM9qhXDlLVWRFkiY='
