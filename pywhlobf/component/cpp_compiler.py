@@ -1,4 +1,5 @@
 from typing import Sequence
+from enum import unique, Enum
 from pathlib import Path
 import os
 import subprocess
@@ -12,13 +13,66 @@ import attrs
 
 @attrs.define
 class CppCompilerConfig:
+    # TODO: support extra arguments listed in
+    # https://docs.python.org/3/distutils/apiref.html#distutils.core.Extension
     pass
+
+
+@unique
+class CppCompilerKind(Enum):
+    MSVC = 'msvc'
+    CLANG = 'clang'
+    GCC = 'gcc'
 
 
 class CppCompiler:
 
     def __init__(self, config: CppCompilerConfig):
         self.config = config
+
+        # Detect C++ compiler.
+        cxx = sysconfig.get_config_var('CXX')
+        if not cxx:
+            assert os.name == 'nt'
+            self.cpp_compiler_kind = CppCompilerKind.MSVC
+            self.clang_version_major = None
+            self.gcc_version_major = None
+            self.gcc_version_minor = None
+
+        else:
+            result = subprocess.run(
+                # https://en.cppreference.com/w/cpp/header/ciso646
+                # NOTE: It's fine since we don't use c++20.
+                'printf "#include <ciso646>\nint main () {}" '
+                f'| {cxx} -E -x c++ -dM -',
+                shell=True,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            stdout = result.stdout
+
+            libcpp_version_match = re.search(r'_LIBCPP_VERSION (\d+)', stdout)
+            glibcpp_version_match = re.search(r'__GLIBCXX__', stdout)
+
+            # https://stuff.mit.edu/afs/athena/project/rhel-doc/3/rhel-cpp-en-3/predefined-macros.html
+            gunc_match = re.search(r'__GNUC__ (\d+)', stdout)
+            gunc_minor_match = re.search(r'__GNUC_MINOR__ (\d+)', stdout)
+
+            if libcpp_version_match:
+                # VRRR format.
+                self.cpp_compiler_kind = CppCompilerKind.CLANG
+                libcpp_version = libcpp_version_match.group(1)
+                self.clang_version_major = int(libcpp_version[:-3])
+
+            elif glibcpp_version_match:
+                self.cpp_compiler_kind = CppCompilerKind.GCC
+                assert gunc_match and gunc_minor_match
+                self.gcc_version_major = int(gunc_match.group(1))
+                self.gcc_version_minor = int(gunc_minor_match.group(1))
+
+            else:
+                raise NotImplementedError()
 
     def run(
         self,
@@ -29,55 +83,27 @@ class CppCompiler:
         string_literal_obfuscator_activated: bool,
         source_code_injector_activated: bool,
     ):
-        # Set -std.
+        # Configure compiler.
         if source_code_injector_activated:
-            if os.name == 'posix':
+            if self.cpp_compiler_kind == CppCompilerKind.CLANG:
                 ext_module.extra_compile_args.append('-std=c++17')
-                # POSIX.
-                cxx = sysconfig.get_config_var('CXX')
-                assert cxx
 
-                result = subprocess.run(
-                    # https://en.cppreference.com/w/cpp/header/ciso646
-                    # NOTE: It's fine since we don't use c++20.
-                    'printf "#include <ciso646>\nint main () {}" '
-                    f'| {cxx} -E -x c++ -dM -',
-                    shell=True,
-                    capture_output=True,
-                    check=True,
-                    text=True,
-                )
-                stdout = result.stdout
+                assert self.clang_version_major
+                # https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem
+                if self.clang_version_major < 7:
+                    ext_module.extra_link_args.append('-lc++experimental')
+                elif self.clang_version_major < 9:
+                    ext_module.extra_link_args.append('-lc++fs')
 
-                libcpp_version_match = re.search(r'_LIBCPP_VERSION (\d+)', stdout)
-                glibcpp_version_match = re.search(r'__GLIBCXX__', stdout)
+            elif self.cpp_compiler_kind == CppCompilerKind.GCC:
+                ext_module.extra_compile_args.append('-std=c++17')
 
-                # https://stuff.mit.edu/afs/athena/project/rhel-doc/3/rhel-cpp-en-3/predefined-macros.html
-                gunc_match = re.search(r'__GNUC__ (\d+)', stdout)
-                gunc_minor_match = re.search(r'__GNUC_MINOR__ (\d+)', stdout)
+                assert self.gcc_version_major and self.gcc_version_minor
+                if self.gcc_version_major < 9 \
+                        or self.gcc_version_major == 9 and self.gcc_version_minor < 1:
+                    ext_module.extra_link_args.append('-lstdc++fs')
 
-                if libcpp_version_match:
-                    # VRRR format.
-                    libcpp_version = libcpp_version_match.group(1)
-                    libcpp_major_version = int(libcpp_version[:-3])
-                    # https://releases.llvm.org/10.0.0/projects/libcxx/docs/UsingLibcxx.html#using-filesystem
-                    if libcpp_major_version < 7:
-                        ext_module.extra_link_args.append('-lc++experimental')
-                    elif libcpp_major_version < 9:
-                        ext_module.extra_link_args.append('-lc++fs')
-
-                elif glibcpp_version_match:
-                    assert gunc_match and gunc_minor_match
-                    major = int(gunc_match.group(1))
-                    minor = int(gunc_minor_match.group(1))
-                    if major < 9 or major == 9 and minor < 1:
-                        ext_module.extra_link_args.append('-lstdc++fs')
-
-                else:
-                    raise NotImplementedError()
-
-            elif os.name == 'nt':
-                # Windows.
+            elif self.cpp_compiler_kind == CppCompilerKind.MSVC:
                 # This works for Visual Studio >= 2019.
                 # https://learn.microsoft.com/en-us/cpp/standard-library/filesystem?view=msvc-170
                 ext_module.extra_compile_args.append('/std:c++17')
@@ -86,21 +112,17 @@ class CppCompiler:
                 raise NotImplementedError()
 
         elif string_literal_obfuscator_activated:
-            if os.name == 'posix':
-                # POSIX.
+            if self.cpp_compiler_kind in (CppCompilerKind.CLANG, CppCompilerKind.GCC):
                 ext_module.extra_compile_args.append('-std=c++14')
-            elif os.name == 'nt':
-                # Windows.
+            elif self.cpp_compiler_kind == CppCompilerKind.MSVC:
                 ext_module.extra_compile_args.append('/std:c++14')
             else:
                 raise NotImplementedError()
 
         else:
-            if os.name == 'posix':
-                # POSIX.
+            if self.cpp_compiler_kind in (CppCompilerKind.CLANG, CppCompilerKind.GCC):
                 ext_module.extra_compile_args.append('-std=c++11')
-            elif os.name == 'nt':
-                # Windows.
+            elif self.cpp_compiler_kind == CppCompilerKind.MSVC:
                 ext_module.extra_compile_args.append('/std:c++11')
             else:
                 raise NotImplementedError()
