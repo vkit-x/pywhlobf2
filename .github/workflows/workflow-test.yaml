@@ -98,11 +98,13 @@ jobs:
       - name: Install.
         run: |
           # Install with the latest dependencies.
+          pip uninstall -y wheel
           pip install -e .
         if: matrix.test_cython3 == 'no'
       - name: Install (cython3).
         run: |
           # Install with the latest dependencies.
+          pip uninstall -y wheel
           pip install -e .'[cython3]'
         if: matrix.test_cython3 == 'yes'
       - name: Install tools for testing.
@@ -178,11 +180,13 @@ jobs:
       - name: Install.
         run: |
           # Install with the latest dependencies.
+          python -m pip uninstall -y wheel
           python -m pip install -e .
         if: matrix.test_cython3 == 'no'
       - name: Install (cython3).
         run: |
           # Install with the latest dependencies.
+          python -m pip uninstall -y wheel
           python -m pip install -e ".[cython3]"
         if: matrix.test_cython3 == 'yes'
       - name: Install tools for testing.

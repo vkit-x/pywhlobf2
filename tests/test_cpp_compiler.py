@@ -20,7 +20,7 @@ from tests.opt import get_test_output_fd, get_test_py_file
 
 def test_cpp_compiler():
     output_fd = get_test_output_fd()
-    test_py_file = get_test_py_file()
+    test_py_file = get_test_py_file('for_test_cpp_compiler.py')
 
     cpp_generator = CppGenerator(CppGeneratorConfig())
     cpp_file, ext_module = cpp_generator.run(test_py_file, output_fd)

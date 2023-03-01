@@ -1,6 +1,8 @@
+from typing import Optional
 import os
 import os.path
 import inspect
+import shutil
 
 import iolite as io
 from Cython.Compiler.Version import version as cython_version
@@ -50,16 +52,23 @@ def get_test_output_path(rel_path: str, frames_offset: int = 0):
     return test_output_path
 
 
-def get_test_py_file():
+def get_test_py_file(new_name: Optional[str] = ''):
     if cython_version[0] != '3':
-        return io.file(
+        test_py_file = io.file(
             '$PYWHLOBF_DATA/test-data/wheel-0.37.1/wheel/bdist_wheel.py',
             expandvars=True,
             exists=True,
         )
     else:
-        return io.file(
+        test_py_file = io.file(
             '$PYWHLOBF_DATA/test-data/wheel-0.38.4/wheel/bdist_wheel.py',
             expandvars=True,
             exists=True,
         )
+
+    if new_name:
+        new_test_py_file = test_py_file.with_name(new_name)
+        shutil.copyfile(test_py_file, new_test_py_file)
+        test_py_file = new_test_py_file
+
+    return test_py_file
