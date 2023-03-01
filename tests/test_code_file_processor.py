@@ -1,4 +1,7 @@
 import sys
+import importlib.util
+import traceback
+
 from pywhlobf.code_file_processor import (
     ExecutionContextCollection,
     CodeFileProcessorConfig,
@@ -55,3 +58,16 @@ def test_code_file_processor():
     assert compiled_lib_file and compiled_lib_file.is_file()
     assert execution_context_collection.succeeded
     print(execution_context_collection.get_logging_message())
+
+    module_name = compiled_lib_file.stem.split('.')[0]
+    spec = importlib.util.spec_from_file_location(module_name, str(compiled_lib_file))
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except ImportError:
+        encrypted_traceback = traceback.format_exc()
+        print(encrypted_traceback)
+        assert 'wheel' not in encrypted_traceback
+        assert encrypted_traceback.count('(pywhlobf') == 3
