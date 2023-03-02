@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import os
 
 import iolite as io
 
@@ -58,13 +59,18 @@ def test_code_file_processor():
     assert execution_context_collection.succeeded
     print(execution_context_collection.get_logging_message())
 
+    env = {'PYTHONPATH': str(working_fd)}
+    # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
+    if os.name == 'nt':
+        env['SYSTEMROOT'] = os.getenv(SYSTEMROOT)
+        assert env['SYSTEMROOT']
     process = subprocess.run(
         [
             sys.executable,
             '-c',
             f'import {test_py_file.stem}',
         ],
-        env={'PYTHONPATH': str(working_fd)},
+        env=env,
         capture_output=True,
         text=True,
     )

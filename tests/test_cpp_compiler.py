@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import os
 
 import iolite as io
 
@@ -50,13 +51,17 @@ def test_cpp_compiler():
     )
     assert compiled_lib_file.is_file()
 
+    env = {'PYTHONPATH': str(output_fd)}
+    if os.name == 'nt':
+        env['SYSTEMROOT'] = os.getenv(SYSTEMROOT)
+        assert env['SYSTEMROOT']
     process = subprocess.run(
         [
             sys.executable,
             '-c',
             f'import {test_py_file.stem}',
         ],
-        env={'PYTHONPATH': str(output_fd)},
+        env=env,
         capture_output=True,
         text=True,
     )
