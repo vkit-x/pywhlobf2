@@ -40,7 +40,7 @@ class CppCompiler:
             self.gcc_version_minor = None
 
         else:
-            result = subprocess.run(
+            process = subprocess.run(
                 # https://en.cppreference.com/w/cpp/header/ciso646
                 # NOTE: It's fine since we don't use c++20.
                 'printf "#include <ciso646>\nint main () {}" '
@@ -50,7 +50,7 @@ class CppCompiler:
                 check=True,
                 text=True,
             )
-            stdout = result.stdout
+            stdout = process.stdout
 
             libcpp_version_match = re.search(r'_LIBCPP_VERSION (\d+)', stdout)
             glibcpp_version_match = re.search(r'__GLIBCXX__', stdout)

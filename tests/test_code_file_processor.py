@@ -1,11 +1,13 @@
 import sys
+import subprocess
+
+import iolite as io
+
 from pywhlobf.code_file_processor import (
     ExecutionContextCollection,
     CodeFileProcessorConfig,
     CodeFileProcessor,
 )
-
-import iolite as io
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
@@ -55,3 +57,17 @@ def test_code_file_processor():
     assert compiled_lib_file and compiled_lib_file.is_file()
     assert execution_context_collection.succeeded
     print(execution_context_collection.get_logging_message())
+
+    process = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            f'import {test_py_file.stem}',
+        ],
+        env={'PYTHONPATH': str(working_fd)},
+        capture_output=True,
+        text=True,
+    )
+    encrypted_traceback = process.stderr
+    assert 'wheel' not in encrypted_traceback
+    assert encrypted_traceback.count('(pywhlobf') == 3
