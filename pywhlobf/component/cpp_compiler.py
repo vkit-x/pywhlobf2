@@ -4,17 +4,16 @@ from pathlib import Path
 import os
 import subprocess
 import re
-from distutils.extension import Extension
-from distutils.core import setup
 import sysconfig
 
 import attrs
+from setuptools import setup, Extension
 
 
 @attrs.define
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
-    # https://docs.python.org/3/distutils/apiref.html#distutils.core.Extension
+    # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
     pass
 
 

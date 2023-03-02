@@ -3,9 +3,9 @@ from pathlib import Path
 import shutil
 
 import attrs
+from setuptools import Extension
 from Cython.Build.Dependencies import cythonize
 from Cython.Compiler import Options
-from distutils.extension import Extension
 
 
 @attrs.define
