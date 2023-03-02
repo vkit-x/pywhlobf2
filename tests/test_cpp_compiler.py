@@ -51,10 +51,8 @@ def test_cpp_compiler():
     )
     assert compiled_lib_file.is_file()
 
-    env = {'PYTHONPATH': str(output_fd)}
-    if os.name == 'nt':
-        env['SYSTEMROOT'] = os.getenv(SYSTEMROOT)
-        assert env['SYSTEMROOT']
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(output_fd)
     process = subprocess.run(
         [
             sys.executable,

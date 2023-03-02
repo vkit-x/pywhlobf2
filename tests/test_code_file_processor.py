@@ -59,11 +59,9 @@ def test_code_file_processor():
     assert execution_context_collection.succeeded
     print(execution_context_collection.get_logging_message())
 
-    env = {'PYTHONPATH': str(working_fd)}
     # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
-    if os.name == 'nt':
-        env['SYSTEMROOT'] = os.getenv(SYSTEMROOT)
-        assert env['SYSTEMROOT']
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(working_fd)
     process = subprocess.run(
         [
             sys.executable,
