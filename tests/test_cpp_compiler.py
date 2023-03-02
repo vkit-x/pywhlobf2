@@ -60,6 +60,11 @@ def test_cpp_compiler():
         capture_output=True,
         text=True,
     )
+    print('-' * 40)
+    print(process.stdout)
+    print('-' * 40)
+    print(process.stderr)
+    print('-' * 40)
     encrypted_traceback = process.stderr
     assert 'wheel' not in encrypted_traceback
     assert encrypted_traceback.count('(pywhlobf') == 3
