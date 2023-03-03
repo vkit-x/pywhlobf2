@@ -63,3 +63,18 @@ def get_test_py_file():
             expandvars=True,
             exists=True,
         )
+
+
+def get_test_code_fd():
+    if cython_version[0] != '3':
+        return io.folder(
+            '$PYWHLOBF_DATA/test-data/wheel-0.37.1/wheel/',
+            expandvars=True,
+            exists=True,
+        )
+    else:
+        return io.folder(
+            '$PYWHLOBF_DATA/test-data/wheel-0.38.4/wheel/',
+            expandvars=True,
+            exists=True,
+        )

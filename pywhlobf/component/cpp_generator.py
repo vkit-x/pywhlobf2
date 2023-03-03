@@ -57,6 +57,10 @@ class CppGenerator:
         assert len(ext_modules) == 1
         ext_module: Extension = ext_modules[0]
 
+        # Feels like a bug of Cython.
+        if ext_module.name.endswith('.__init__'):
+            ext_module.name = '__init__'
+
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()
 

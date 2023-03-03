@@ -31,6 +31,12 @@ class CodeFolderProcessorConfig:
     wrap_code_file_processor_outputs_in_tqdm: bool = False
 
 
+@attrs.define
+class CodeFolderProcessorOutput:
+    succeeded_outputs: Sequence[CodeFileProcessorOutput]
+    failed_outputs: Sequence[CodeFileProcessorOutput]
+
+
 def process_py_file(
     num_processes: Optional[int],
     func_process_py_file: Callable[[Path], CodeFileProcessorOutput],
@@ -45,12 +51,6 @@ def process_py_file(
     else:
         for py_file in py_files:
             yield func_process_py_file(py_file)
-
-
-@attrs.define
-class CodeFolderProcessorOutput:
-    succeeded_outputs: Sequence[CodeFileProcessorOutput]
-    failed_outputs: Sequence[CodeFileProcessorOutput]
 
 
 class CodeFolderProcessor:
@@ -72,7 +72,7 @@ class CodeFolderProcessor:
         # Collect code files to process.
         py_files: List[Path] = []
         for pattern in self.config.patterns:
-            py_files.extend(working_fd.glob(pattern))
+            py_files.extend(input_fd.glob(pattern))
 
         # Process.
         outputs = process_py_file(
@@ -81,11 +81,12 @@ class CodeFolderProcessor:
                 self.code_file_processor.run,
                 py_root_fd=input_fd,
                 working_fd=working_fd,
+                working_fd_is_root=True,
             ),
             py_files=py_files,
         )
         if self.config.wrap_code_file_processor_outputs_in_tqdm:
-            outputs = tqdm(outputs)
+            outputs = tqdm(outputs, total=len(py_files))
 
         succeeded_outputs: List[CodeFileProcessorOutput] = []
         failed_outputs: List[CodeFileProcessorOutput] = []
@@ -109,7 +110,7 @@ class CodeFolderProcessor:
                     if not input_file.is_file():
                         continue
                     output_file = output_fd / input_file.relative_to(input_fd)
-                    output_file.parent.mkdir(exist_ok=True)
+                    output_file.parent.mkdir(exist_ok=True, parents=True)
                     shutil.copyfile(input_file, output_file)
 
             if self.config.delete_processed_code_file:

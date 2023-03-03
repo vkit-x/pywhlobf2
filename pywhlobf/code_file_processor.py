@@ -161,10 +161,18 @@ class CodeFileProcessor:
         py_file: Path,
         working_fd: Path,
         py_root_fd: Optional[Path] = None,
+        working_fd_is_root: bool = False,
     ):
         include_fds: List[Path] = []
 
+        if py_root_fd and working_fd_is_root:
+            rel_path = py_file.relative_to(py_root_fd)
+            rel_path = rel_path.with_name(rel_path.name.replace('.', '_'))
+            working_fd = working_fd / rel_path
+
+        working_fd.mkdir(exist_ok=True, parents=True)
         logging_fd = io.folder(working_fd / 'logging', reset=True)
+
         execution_context_collection = ExecutionContextCollection(
             logging_fd=logging_fd,
             verbose=self.config.verbose,
