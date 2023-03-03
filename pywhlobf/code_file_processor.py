@@ -138,6 +138,13 @@ class ExecutionContextCollection:
         return '\n'.join(lines)
 
 
+@attrs.define
+class CodeFileProcessorOutput:
+    py_file: Path
+    compiled_lib_file: Optional[Path]
+    execution_context_collection: ExecutionContextCollection
+
+
 class CodeFileProcessor:
 
     def __init__(self, config: CodeFileProcessorConfig):
@@ -162,6 +169,11 @@ class CodeFileProcessor:
             logging_fd=logging_fd,
             verbose=self.config.verbose,
         )
+
+        with execution_context_collection.guard('prep') as should_run:
+            assert should_run
+            assert py_file.is_file()
+            assert py_file.suffix in ('.py', '.pyx')
 
         with execution_context_collection.guard('cpp_generator') as should_run:
             if should_run:
@@ -200,4 +212,8 @@ class CodeFileProcessor:
                     source_code_injector_activated=source_code_injector_activated,
                 )
 
-        return compiled_lib_file, execution_context_collection
+        return CodeFileProcessorOutput(
+            py_file=py_file,
+            compiled_lib_file=compiled_lib_file,
+            execution_context_collection=execution_context_collection,
+        )
