@@ -1,4 +1,4 @@
-from typing import Sequence, Optional, List, Tuple, Callable
+from typing import Sequence, Optional, List, Callable
 from pathlib import Path
 import tempfile
 import functools
