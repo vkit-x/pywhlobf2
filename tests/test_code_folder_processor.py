@@ -18,4 +18,8 @@ def test_code_folder_processor():
         output_fd=output_fd,
         working_fd=working_fd,
     )
-    assert not output.failed_outputs
+    if output.failed_outputs:
+        for failed_output in output.failed_outputs:
+            print('!!! DEBUG !!!')
+            print(failed_output.execution_context_collection.get_logging_message())
+        assert 0

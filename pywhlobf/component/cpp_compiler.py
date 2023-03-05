@@ -15,7 +15,7 @@ from setuptools import setup, Extension
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
-    setup_build_ext_timeout: int = 400
+    setup_build_ext_timeout: int = 60
 
 
 @unique
