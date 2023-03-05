@@ -1,3 +1,4 @@
+from pywhlobf.code_file_processor import CodeFileProcessorConfig
 from pywhlobf.code_folder_processor import (
     CodeFolderProcessorConfig,
     CodeFolderProcessor,
@@ -11,7 +12,11 @@ def test_code_folder_processor():
     output_fd = test_output_fd / 'output'
 
     code_folder_processor = CodeFolderProcessor(
-        CodeFolderProcessorConfig(wrap_code_file_processor_outputs_in_tqdm=True)
+        CodeFolderProcessorConfig(
+            wrap_code_file_processor_outputs_in_tqdm=True,
+            num_processes=0,
+            code_file_processor_config=CodeFileProcessorConfig(verbose=True),
+        )
     )
     output = code_folder_processor.run(
         input_fd=get_test_code_fd(),
