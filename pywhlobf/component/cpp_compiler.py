@@ -3,6 +3,7 @@ from enum import unique, Enum
 from pathlib import Path
 import os
 import subprocess
+from multiprocessing import Process, ProcessError
 import re
 import sysconfig
 
@@ -14,7 +15,7 @@ from setuptools import setup, Extension
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
-    pass
+    setup_build_ext_timeout: int = 60
 
 
 @unique
@@ -22,6 +23,25 @@ class CppCompilerKind(Enum):
     MSVC = 'msvc'
     CLANG = 'clang'
     GCC = 'gcc'
+
+
+def setup_build_ext(
+    ext_module: Extension,
+    working_fd: Path,
+    temp_fd: Path,
+):
+    os.chdir(working_fd)
+
+    setup(
+        script_name='setup.py',
+        script_args=[
+            'build_ext',
+            '-i',
+            '--build-temp',
+            str(temp_fd),
+        ],
+        ext_modules=[ext_module],
+    )
 
 
 class CppCompiler:
@@ -131,20 +151,22 @@ class CppCompiler:
             ext_module.include_dirs.append(str(include_fd))
 
         # Build the shared library.
-        cwd = os.getcwd()
         working_fd = cpp_file.parent
-        os.chdir(working_fd)
-        setup(
-            script_name='setup.py',
-            script_args=[
-                'build_ext',
-                '-i',
-                '--build-temp',
-                str(temp_fd),
-            ],
-            ext_modules=[ext_module],
+
+        process = Process(
+            target=setup_build_ext,
+            kwargs={
+                'ext_module': ext_module,
+                'working_fd': working_fd,
+                'temp_fd': temp_fd,
+            },
         )
-        os.chdir(cwd)
+        process.start()
+        process.join(timeout=self.config.setup_build_ext_timeout)
+        assert process.exitcode is not None
+
+        if process.exitcode != 0:
+            raise ProcessError('Compilation failed.')
 
         # Get the path of shared library.
         if os.name == 'posix':
