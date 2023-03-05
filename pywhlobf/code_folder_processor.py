@@ -2,7 +2,7 @@ from typing import Sequence, Optional, List, Callable
 from pathlib import Path
 import tempfile
 import functools
-from multiprocessing import Pool
+from concurrent.futures import ProcessPoolExecutor
 import shutil
 
 import attrs
@@ -43,8 +43,9 @@ def process_py_file(
     py_files: Sequence[Path],
 ):
     if num_processes != 0:
-        with Pool(processes=num_processes) as pool:
-            yield from pool.imap_unordered(
+        # NOTE: multiprocessing.Pool creates daemonic process, which is unsuitable.
+        with ProcessPoolExecutor(max_workers=num_processes) as pool:
+            yield from pool.map(
                 func_process_py_file,
                 py_files,
             )
