@@ -61,10 +61,12 @@ class CppGenerator:
         assert len(ext_modules) == 1
         ext_module: Extension = ext_modules[0]
 
-        # Patch the name from '__init___py.__init__' to '__init__'.
         # Feels like a bug of Cython.
         if ext_module.name.endswith('.__init__'):
+            # Patch the name from '__init___py.__init__' to '__init__'.
             ext_module.name = '__init__'
+            # Patch export symbol used in Windows.
+            ext_module.export_symbols = [f'PyInit_{py_file.parent.name}']
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()
