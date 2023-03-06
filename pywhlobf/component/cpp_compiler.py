@@ -28,7 +28,6 @@ class CppCompilerKind(Enum):
 def setup_build_ext(
     ext_module: Extension,
     working_fd: Path,
-    temp_fd: Path,
 ):
     os.chdir(working_fd)
 
@@ -37,8 +36,9 @@ def setup_build_ext(
         script_args=[
             'build_ext',
             '-i',
+            # Hack to place the temporary files inplace.
             '--build-temp',
-            str(temp_fd),
+            working_fd.anchor,
         ],
         ext_modules=[ext_module],
     )
@@ -98,7 +98,6 @@ class CppCompiler:
         cpp_file: Path,
         ext_module: Extension,
         include_fds: Sequence[Path],
-        temp_fd: Path,
         string_literal_obfuscator_activated: bool,
         source_code_injector_activated: bool,
     ):
@@ -158,7 +157,6 @@ class CppCompiler:
             kwargs={
                 'ext_module': ext_module,
                 'working_fd': working_fd,
-                'temp_fd': temp_fd,
             },
         )
         process.start()

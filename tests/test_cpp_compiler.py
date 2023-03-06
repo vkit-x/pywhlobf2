@@ -2,8 +2,6 @@ import sys
 import subprocess
 import os
 
-import iolite as io
-
 from pywhlobf.component.cpp_generator import CppGeneratorConfig, CppGenerator
 from pywhlobf.component.string_literal_obfuscator import (
     StringLiteralObfuscatorConfig,
@@ -45,7 +43,6 @@ def test_cpp_compiler():
         cpp_file=cpp_file,
         ext_module=ext_module,
         include_fds=[include_fd],
-        temp_fd=io.folder(output_fd / 'cpp_compiler_temp', reset=True),
         string_literal_obfuscator_activated=string_literal_obfuscator_activated,
         source_code_injector_activated=source_code_injector_activated,
     )

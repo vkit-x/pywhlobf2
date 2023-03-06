@@ -210,12 +210,10 @@ class CodeFileProcessor:
         compiled_lib_file = None
         with execution_context_collection.guard('cpp_compiler') as should_run:
             if should_run:
-                temp_fd = io.folder(working_fd / 'cpp_compiler_temp', reset=True)
                 compiled_lib_file = self.cpp_compiler.run(
                     cpp_file=cpp_file,
                     ext_module=ext_module,
                     include_fds=include_fds,
-                    temp_fd=temp_fd,
                     string_literal_obfuscator_activated=string_literal_obfuscator_activated,
                     source_code_injector_activated=source_code_injector_activated,
                 )
