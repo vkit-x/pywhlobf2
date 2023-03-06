@@ -1,6 +1,7 @@
 from typing import Mapping, Union
 from pathlib import Path
 import shutil
+import os
 
 import attrs
 from setuptools import Extension
@@ -58,7 +59,7 @@ class CppGenerator:
         ext_module: Extension = ext_modules[0]
 
         # Patch the name for __init__.py. Feels like a bug of Cython.
-        if ext_module.name.endswith('.__init__'):
+        if os.name != 'nt' and ext_module.name.endswith('.__init__'):
             ext_module.name = '__init__'
 
         # Make sure the cpp file is generated.
