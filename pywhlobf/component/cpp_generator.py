@@ -25,8 +25,12 @@ class CppGenerator:
         self.config = config
 
     def run(self, py_file: Path, working_fd: Path):
-        # Copy python file to the working folder.
         assert working_fd.is_dir()
+        if py_file.stem in ('__init__', '__main__'):
+            # Make sure the module name matches. This is required by `cythonize`.
+            assert working_fd.name == py_file.parent.name
+
+        # Copy python file to the working folder.
         working_py_file = working_fd / py_file.name
         shutil.copyfile(py_file, working_py_file)
         py_file = working_py_file
@@ -59,11 +63,8 @@ class CppGenerator:
 
         # Patch the name from '__init___py.__init__' to '__init__'.
         # Feels like a bug of Cython.
-        # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#integrating-multiple-modules
-        # TODO: Investigate how to use cython_freeze.
-        if ext_module.name == '__init___py.__init__':
+        if ext_module.name.endswith('.__init__'):
             ext_module.name = '__init__'
-            ext_module.define_macros.append(('CYTHON_NO_PYINIT_EXPORT', '1'))
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()

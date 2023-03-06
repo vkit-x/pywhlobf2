@@ -168,6 +168,11 @@ class CodeFileProcessor:
         if py_root_fd and working_fd_is_root:
             rel_path = py_file.relative_to(py_root_fd)
             rel_path = rel_path.with_name(rel_path.name.replace('.', '_'))
+
+            if py_file.stem in ('__init__', '__main__'):
+                # The parent folder name is important when cythonizing __init__.py.
+                rel_path = rel_path / py_file.parent.name
+
             working_fd = working_fd / rel_path
 
         working_fd.mkdir(exist_ok=True, parents=True)
