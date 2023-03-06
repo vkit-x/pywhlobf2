@@ -1,7 +1,6 @@
 from typing import Mapping, Union
 from pathlib import Path
 import shutil
-import os
 
 import attrs
 from setuptools import Extension
