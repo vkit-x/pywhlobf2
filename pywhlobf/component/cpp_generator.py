@@ -59,8 +59,11 @@ class CppGenerator:
 
         # Patch the name from '__init___py.__init__' to '__init__'.
         # Feels like a bug of Cython.
+        # https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#integrating-multiple-modules
+        # TODO: Investigate how to use cython_freeze.
         if ext_module.name == '__init___py.__init__':
             ext_module.name = '__init__'
+            ext_module.define_macros.append(('CYTHON_NO_PYINIT_EXPORT', '1'))
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()

@@ -37,6 +37,7 @@ def setup_build_ext(
             'build_ext',
             '-i',
             # Hack to place the temporary files inplace.
+            # TODO: MSVC adds a "Release" folder into the path, which should be removed.
             '--build-temp',
             working_fd.anchor,
         ],
