@@ -178,13 +178,12 @@ class CppCompiler:
         process.start()
         process.join(timeout=self.config.setup_build_ext_timeout)
 
-        if process.exitcode is None:
+        if process.exitcode != 0:
             process.kill()
-            raise ProcessError('Compilation timeout.')
-
-        elif process.exitcode != 0:
-            process.kill()
-            raise ProcessError('Compilation failed.')
+            if process.exitcode is None:
+                raise ProcessError('Compilation timeout.')
+            else:
+                raise ProcessError('Compilation failed.')
 
         # Get the path of shared library.
         if os.name == 'posix':
