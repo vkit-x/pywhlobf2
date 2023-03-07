@@ -18,7 +18,7 @@ from setuptools import setup, Extension
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
-    setup_build_ext_timeout: int = 60
+    setup_build_ext_timeout: int = 120
     delete_temp_fd: bool = True
 
 
@@ -177,9 +177,13 @@ class CppCompiler:
         )
         process.start()
         process.join(timeout=self.config.setup_build_ext_timeout)
-        assert process.exitcode is not None
 
-        if process.exitcode != 0:
+        if process.exitcode is None:
+            process.kill()
+            raise ProcessError('Compilation timeout.')
+
+        elif process.exitcode != 0:
+            process.kill()
             raise ProcessError('Compilation failed.')
 
         # Get the path of shared library.
