@@ -1,11 +1,12 @@
 from typing import Mapping, Union
 from pathlib import Path
 import shutil
+import re
 
 import attrs
+from setuptools import Extension
 from Cython.Build.Dependencies import cythonize
 from Cython.Compiler import Options
-from distutils.extension import Extension
 
 
 @attrs.define
@@ -25,8 +26,16 @@ class CppGenerator:
         self.config = config
 
     def run(self, py_file: Path, working_fd: Path):
-        # Copy python file to the working folder.
+        '''
+        Copy the `py_file` into `working_fd` and generate C++ file inplace.
+        '''
         assert working_fd.is_dir()
+
+        if py_file.stem == '__init__':
+            # Make sure the module name is matched.
+            assert working_fd.name == py_file.parent.name
+
+        # Copy python file to the working folder.
         working_py_file = working_fd / py_file.name
         shutil.copyfile(py_file, working_py_file)
         py_file = working_py_file
@@ -59,5 +68,18 @@ class CppGenerator:
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()
+
+        if py_file.stem == '__init__':
+            # Patch PyInit_#name.
+            code = cpp_file.read_text()
+            shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_patching_init'))
+            code = re.sub(
+                rf'PyInit_{py_file.parent.name}\(',
+                'PyInit___init__(',
+                code,
+            )
+            cpp_file.write_text(code)
+            # Patch cython3 codegen.
+            ext_module.define_macros.append(('CYTHON_NO_PYINIT_EXPORT', '1'))
 
         return cpp_file, ext_module

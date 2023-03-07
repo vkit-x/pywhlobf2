@@ -3,19 +3,23 @@ from enum import unique, Enum
 from pathlib import Path
 import os
 import subprocess
+from multiprocessing import Process, ProcessError
 import re
-from distutils.extension import Extension
-from distutils.core import setup
 import sysconfig
+import tempfile
+import shutil
 
 import attrs
+import iolite as io
+from setuptools import setup, Extension
 
 
 @attrs.define
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
-    # https://docs.python.org/3/distutils/apiref.html#distutils.core.Extension
-    pass
+    # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
+    setup_build_ext_timeout: int = 120
+    delete_temp_fd: bool = True
 
 
 @unique
@@ -23,6 +27,31 @@ class CppCompilerKind(Enum):
     MSVC = 'msvc'
     CLANG = 'clang'
     GCC = 'gcc'
+
+
+def get_cpp_file_from_ext_module(ext_module: Extension):
+    assert len(ext_module.sources) == 1
+    cpp_file = io.file(ext_module.sources[0], exists=True)
+    return cpp_file
+
+
+def setup_build_ext(
+    ext_module: Extension,
+    working_fd: Path,
+    temp_fd: Path,
+):
+    os.chdir(working_fd)
+
+    setup(
+        script_name='setup.py',
+        script_args=[
+            'build_ext',
+            '-i',
+            '--build-temp',
+            str(temp_fd),
+        ],
+        ext_modules=[ext_module],
+    )
 
 
 class CppCompiler:
@@ -40,7 +69,7 @@ class CppCompiler:
             self.gcc_version_minor = None
 
         else:
-            result = subprocess.run(
+            process = subprocess.run(
                 # https://en.cppreference.com/w/cpp/header/ciso646
                 # NOTE: It's fine since we don't use c++20.
                 'printf "#include <ciso646>\nint main () {}" '
@@ -50,7 +79,7 @@ class CppCompiler:
                 check=True,
                 text=True,
             )
-            stdout = result.stdout
+            stdout = process.stdout
 
             libcpp_version_match = re.search(r'_LIBCPP_VERSION (\d+)', stdout)
             glibcpp_version_match = re.search(r'__GLIBCXX__', stdout)
@@ -76,13 +105,16 @@ class CppCompiler:
 
     def run(
         self,
-        cpp_file: Path,
         ext_module: Extension,
+        working_fd: Path,
         include_fds: Sequence[Path],
-        temp_fd: Path,
         string_literal_obfuscator_activated: bool,
         source_code_injector_activated: bool,
     ):
+        '''
+        `working_fd` could be the python package root folder.
+        '''
+
         # Configure compiler.
         if source_code_injector_activated:
             if self.cpp_compiler_kind == CppCompilerKind.CLANG:
@@ -132,20 +164,27 @@ class CppCompiler:
             ext_module.include_dirs.append(str(include_fd))
 
         # Build the shared library.
-        cwd = os.getcwd()
-        working_fd = cpp_file.parent
-        os.chdir(working_fd)
-        setup(
-            script_name='setup.py',
-            script_args=[
-                'build_ext',
-                '-i',
-                '--build-temp',
-                str(temp_fd),
-            ],
-            ext_modules=[ext_module],
+        cpp_file = get_cpp_file_from_ext_module(ext_module)
+        temp_fd = io.folder(tempfile.mkdtemp(), exists=True)
+
+        process = Process(
+            target=setup_build_ext,
+            kwargs={
+                'ext_module': ext_module,
+                'working_fd': working_fd,
+                'temp_fd': temp_fd,
+            },
         )
-        os.chdir(cwd)
+        process.start()
+        process.join(timeout=self.config.setup_build_ext_timeout)
+
+        if process.exitcode is None:
+            process.kill()
+            raise ProcessError('Compilation timeout.')
+
+        elif process.exitcode != 0:
+            process.kill()
+            raise ProcessError('Compilation failed.')
 
         # Get the path of shared library.
         if os.name == 'posix':
@@ -157,6 +196,9 @@ class CppCompiler:
         else:
             raise NotImplementedError()
 
-        compiled_lib_files = tuple(working_fd.glob(f'{cpp_file.stem}*{ext}'))
+        if self.config.delete_temp_fd:
+            shutil.rmtree(temp_fd)
+
+        compiled_lib_files = tuple(cpp_file.parent.glob(f'{cpp_file.stem}.*{ext}'))
         assert len(compiled_lib_files) == 1
         return compiled_lib_files[0]

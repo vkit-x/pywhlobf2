@@ -11,8 +11,7 @@ import hashlib
 import iolite as io
 from Cython.Build.Dependencies import cythonize
 from Cython.Compiler.Version import version
-from distutils.extension import Extension
-from distutils.core import setup
+from setuptools import setup, Extension
 from cryptography.fernet import Fernet
 
 

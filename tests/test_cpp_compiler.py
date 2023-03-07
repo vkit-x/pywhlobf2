@@ -1,6 +1,7 @@
-import importlib.util
 import sys
-import traceback
+import subprocess
+import os
+
 from pywhlobf.component.cpp_generator import CppGeneratorConfig, CppGenerator
 from pywhlobf.component.string_literal_obfuscator import (
     StringLiteralObfuscatorConfig,
@@ -14,7 +15,6 @@ from pywhlobf.component.cpp_compiler import (
     CppCompilerConfig,
     CppCompiler,
 )
-import iolite as io
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
@@ -40,24 +40,31 @@ def test_cpp_compiler():
 
     cpp_compiler = CppCompiler(CppCompilerConfig())
     compiled_lib_file = cpp_compiler.run(
-        cpp_file=cpp_file,
         ext_module=ext_module,
+        working_fd=output_fd,
         include_fds=[include_fd],
-        temp_fd=io.folder(output_fd / 'cpp_compiler_temp', reset=True),
         string_literal_obfuscator_activated=string_literal_obfuscator_activated,
         source_code_injector_activated=source_code_injector_activated,
     )
     assert compiled_lib_file.is_file()
 
-    module_name = compiled_lib_file.stem.split('.')[0]
-    spec = importlib.util.spec_from_file_location(module_name, str(compiled_lib_file))
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    try:
-        spec.loader.exec_module(module)
-    except ImportError:
-        encrypted_traceback = traceback.format_exc()
-        print(encrypted_traceback)
-        assert 'wheel' not in encrypted_traceback
-        assert encrypted_traceback.count('(pywhlobf') == 3
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(output_fd)
+    process = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            f'import {test_py_file.stem}',
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    print('-' * 40)
+    print(process.stdout)
+    print('-' * 40)
+    print(process.stderr)
+    print('-' * 40)
+    encrypted_traceback = process.stderr
+    assert 'wheel' not in encrypted_traceback
+    assert encrypted_traceback.count('(pywhlobf') == 3
