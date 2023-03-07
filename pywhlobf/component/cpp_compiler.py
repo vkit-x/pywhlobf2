@@ -6,8 +6,11 @@ import subprocess
 from multiprocessing import Process, ProcessError
 import re
 import sysconfig
+import tempfile
+import shutil
 
 import attrs
+import iolite as io
 from setuptools import setup, Extension
 
 
@@ -16,6 +19,7 @@ class CppCompilerConfig:
     # TODO: support extra arguments listed in
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
     setup_build_ext_timeout: int = 60
+    delete_temp_fd: bool = True
 
 
 @unique
@@ -25,9 +29,16 @@ class CppCompilerKind(Enum):
     GCC = 'gcc'
 
 
+def get_cpp_file_from_ext_module(ext_module: Extension):
+    assert len(ext_module.sources) == 1
+    cpp_file = io.file(ext_module.sources[0], exists=True)
+    return cpp_file
+
+
 def setup_build_ext(
     ext_module: Extension,
     working_fd: Path,
+    temp_fd: Path,
 ):
     os.chdir(working_fd)
 
@@ -36,10 +47,8 @@ def setup_build_ext(
         script_args=[
             'build_ext',
             '-i',
-            # Hack to place the temporary files inplace.
-            # TODO: MSVC adds a "Release" folder into the path, which should be removed.
             '--build-temp',
-            working_fd.anchor,
+            str(temp_fd),
         ],
         ext_modules=[ext_module],
     )
@@ -96,12 +105,16 @@ class CppCompiler:
 
     def run(
         self,
-        cpp_file: Path,
         ext_module: Extension,
+        working_fd: Path,
         include_fds: Sequence[Path],
         string_literal_obfuscator_activated: bool,
         source_code_injector_activated: bool,
     ):
+        '''
+        `working_fd` could be the python package root folder.
+        '''
+
         # Configure compiler.
         if source_code_injector_activated:
             if self.cpp_compiler_kind == CppCompilerKind.CLANG:
@@ -151,13 +164,15 @@ class CppCompiler:
             ext_module.include_dirs.append(str(include_fd))
 
         # Build the shared library.
-        working_fd = cpp_file.parent
+        cpp_file = get_cpp_file_from_ext_module(ext_module)
+        temp_fd = io.folder(tempfile.mkdtemp(), exists=True)
 
         process = Process(
             target=setup_build_ext,
             kwargs={
                 'ext_module': ext_module,
                 'working_fd': working_fd,
+                'temp_fd': temp_fd,
             },
         )
         process.start()
@@ -177,6 +192,9 @@ class CppCompiler:
         else:
             raise NotImplementedError()
 
-        compiled_lib_files = tuple(working_fd.glob(f'{cpp_file.stem}*{ext}'))
+        if self.config.delete_temp_fd:
+            shutil.rmtree(temp_fd)
+
+        compiled_lib_files = tuple(cpp_file.parent.glob(f'{cpp_file.stem}.*{ext}'))
         assert len(compiled_lib_files) == 1
         return compiled_lib_files[0]

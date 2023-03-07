@@ -53,7 +53,8 @@ def test_code_file_processor():
 
     output = code_file_processor.run(
         py_file=test_py_file,
-        working_fd=working_fd,
+        build_fd=working_fd,
+        logging_fd=working_fd,
     )
     assert output.compiled_lib_file and output.compiled_lib_file.is_file()
     assert output.execution_context_collection.succeeded

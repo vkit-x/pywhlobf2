@@ -25,9 +25,13 @@ class CppGenerator:
         self.config = config
 
     def run(self, py_file: Path, working_fd: Path):
+        '''
+        Copy the `py_file` into `working_fd` and generate C++ file inplace.
+        '''
         assert working_fd.is_dir()
-        if py_file.stem in ('__init__', '__main__'):
-            # Make sure the module name matches. This is required by `cythonize`.
+
+        if py_file.stem == '__init__':
+            # Make sure the module name is matched.
             assert working_fd.name == py_file.parent.name
 
         # Copy python file to the working folder.
@@ -60,13 +64,6 @@ class CppGenerator:
         assert ext_modules is not None
         assert len(ext_modules) == 1
         ext_module: Extension = ext_modules[0]
-
-        # Feels like a bug of Cython.
-        if ext_module.name.endswith('.__init__'):
-            # Patch the name from '__init___py.__init__' to '__init__'.
-            ext_module.name = '__init__'
-            # Patch export symbol used in Windows.
-            ext_module.export_symbols = [f'PyInit_{py_file.parent.name}']
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()

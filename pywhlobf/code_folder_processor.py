@@ -70,6 +70,21 @@ class CodeFolderProcessor:
         if working_fd is None:
             working_fd = io.folder(tempfile.mkdtemp(), exists=True)
 
+        # Make it short to aboid path too long issue.
+        # `b` for build, `l` for logging.
+        build_fd = working_fd / 'b'
+        logging_fd = working_fd / 'l'
+
+        # Copy __init__.* to the build folder, which is required by build_ext.
+        for init_py_file in input_fd.glob('**/__init__.*'):
+            _, _, cpp_generator_working_fd = CodeFileProcessor.prep_fds(
+                py_file=init_py_file,
+                build_fd=build_fd,
+                logging_fd=logging_fd,
+                py_root_fd=input_fd,
+            )
+            shutil.copyfile(init_py_file, cpp_generator_working_fd / init_py_file.name)
+
         # Collect code files to process.
         py_files: List[Path] = []
         for pattern in self.config.patterns:
@@ -80,9 +95,9 @@ class CodeFolderProcessor:
             num_processes=self.config.num_processes,
             func_process_py_file=functools.partial(
                 self.code_file_processor.run,
+                build_fd=build_fd,
+                logging_fd=logging_fd,
                 py_root_fd=input_fd,
-                working_fd=working_fd,
-                working_fd_is_root=True,
             ),
             py_files=py_files,
         )

@@ -7,7 +7,6 @@ from contextlib import contextmanager
 import traceback
 
 import attrs
-import iolite as io
 
 from .component.cpp_generator import (
     CppGeneratorConfig,
@@ -156,27 +155,45 @@ class CodeFileProcessor:
         self.source_code_injector = SourceCodeInjector(config.source_code_injector_config)
         self.cpp_compiler = CppCompiler(config.cpp_compiler_config)
 
+    @classmethod
+    def prep_fds(
+        cls,
+        py_file: Path,
+        build_fd: Path,
+        logging_fd: Path,
+        py_root_fd: Optional[Path] = None,
+    ):
+        if py_root_fd:
+            rel_path = py_file.relative_to(py_root_fd)
+            cpp_generator_working_fd = build_fd / py_root_fd.name / rel_path.parent
+
+            rel_path = rel_path.with_name(rel_path.name.replace('.', '_'))
+            logging_fd = logging_fd / py_root_fd.name / rel_path
+
+        else:
+            cpp_generator_working_fd = build_fd
+
+        build_fd.mkdir(exist_ok=True, parents=True)
+        logging_fd.mkdir(exist_ok=True, parents=True)
+        cpp_generator_working_fd.mkdir(exist_ok=True, parents=True)
+
+        return build_fd, logging_fd, cpp_generator_working_fd
+
     def run(
         self,
         py_file: Path,
-        working_fd: Path,
+        build_fd: Path,
+        logging_fd: Path,
         py_root_fd: Optional[Path] = None,
-        working_fd_is_root: bool = False,
     ):
         include_fds: List[Path] = []
 
-        if py_root_fd and working_fd_is_root:
-            rel_path = py_file.relative_to(py_root_fd)
-            rel_path = rel_path.with_name(rel_path.name.replace('.', '_'))
-
-            if py_file.stem in ('__init__', '__main__'):
-                # The parent folder name is important when cythonizing __init__.py.
-                rel_path = rel_path / py_file.parent.name
-
-            working_fd = working_fd / rel_path
-
-        working_fd.mkdir(exist_ok=True, parents=True)
-        logging_fd = io.folder(working_fd / 'logging', reset=True)
+        build_fd, logging_fd, cpp_generator_working_fd = self.prep_fds(
+            py_file=py_file,
+            build_fd=build_fd,
+            logging_fd=logging_fd,
+            py_root_fd=py_root_fd,
+        )
 
         execution_context_collection = ExecutionContextCollection(
             logging_fd=logging_fd,
@@ -192,7 +209,7 @@ class CodeFileProcessor:
             if should_run:
                 cpp_file, ext_module = self.cpp_generator.run(
                     py_file=py_file,
-                    working_fd=working_fd,
+                    working_fd=cpp_generator_working_fd,
                 )
 
         with execution_context_collection.guard('string_literal_obfuscator') as should_run:
@@ -216,8 +233,8 @@ class CodeFileProcessor:
         with execution_context_collection.guard('cpp_compiler') as should_run:
             if should_run:
                 compiled_lib_file = self.cpp_compiler.run(
-                    cpp_file=cpp_file,
                     ext_module=ext_module,
+                    working_fd=build_fd,
                     include_fds=include_fds,
                     string_literal_obfuscator_activated=string_literal_obfuscator_activated,
                     source_code_injector_activated=source_code_injector_activated,

@@ -40,8 +40,8 @@ def test_cpp_compiler():
 
     cpp_compiler = CppCompiler(CppCompilerConfig())
     compiled_lib_file = cpp_compiler.run(
-        cpp_file=cpp_file,
         ext_module=ext_module,
+        working_fd=output_fd,
         include_fds=[include_fd],
         string_literal_obfuscator_activated=string_literal_obfuscator_activated,
         source_code_injector_activated=source_code_injector_activated,
