@@ -56,9 +56,9 @@ def test_code_file_processor():
         build_fd=working_fd,
         logging_fd=working_fd,
     )
+    print(output.execution_context_collection.get_logging_message())
     assert output.compiled_lib_file and output.compiled_lib_file.is_file()
     assert output.execution_context_collection.succeeded
-    print(output.execution_context_collection.get_logging_message())
 
     # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
     env = os.environ.copy()
