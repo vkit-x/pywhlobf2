@@ -69,6 +69,8 @@ class CodeFolderProcessor:
         # Prepare the working folder.
         if working_fd is None:
             working_fd = io.folder(tempfile.mkdtemp(), exists=True)
+        else:
+            working_fd = io.folder(working_fd, reset=True)
 
         # Make it short to aboid path too long issue.
         # `b` for build, `l` for logging.
