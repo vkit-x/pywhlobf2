@@ -73,8 +73,8 @@ class CppGenerator:
             code = cpp_file.read_text()
             shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_patching_init'))
             code = re.sub(
-                rf'PyInit_{py_file.parent.name}\(void\)',
-                'PyInit___init__(void)',
+                rf'PyInit_{py_file.parent.name}\(',
+                'PyInit___init__(',
                 code,
             )
             cpp_file.write_text(code)
