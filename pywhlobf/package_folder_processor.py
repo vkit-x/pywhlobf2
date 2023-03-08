@@ -16,7 +16,7 @@ from .code_file_processor import (
 
 
 @attrs.define
-class CodeFolderProcessorConfig:
+class PackageFolderProcessorConfig:
     code_file_processor_config: CodeFileProcessorConfig = attrs.field(
         factory=CodeFileProcessorConfig
     )
@@ -30,7 +30,7 @@ class CodeFolderProcessorConfig:
 
 
 @attrs.define
-class CodeFolderProcessorOutput:
+class PackageFolderProcessorOutput:
     succeeded_outputs: Sequence[CodeFileProcessorOutput]
     failed_outputs: Sequence[CodeFileProcessorOutput]
 
@@ -56,9 +56,9 @@ def process_py_file(
             yield func_process_py_file(py_file)
 
 
-class CodeFolderProcessor:
+class PackageFolderProcessor:
 
-    def __init__(self, config: CodeFolderProcessorConfig):
+    def __init__(self, config: PackageFolderProcessorConfig):
         self.config = config
         self.code_file_processor = CodeFileProcessor(config.code_file_processor_config)
 
@@ -68,6 +68,10 @@ class CodeFolderProcessor:
         output_fd: Optional[Path] = None,
         working_fd: Optional[Path] = None,
     ):
+        '''
+        `input_fd` should be a regular package.
+        See https://docs.python.org/3/glossary.html#term-regular-package
+        '''
         # Prepare the working folder.
         if working_fd is None:
             working_fd = io.folder(tempfile.mkdtemp(), exists=True)
@@ -145,7 +149,7 @@ class CodeFolderProcessor:
                     output_py_file.parent / compiled_lib_file.name,
                 )
 
-        return CodeFolderProcessorOutput(
+        return PackageFolderProcessorOutput(
             succeeded_outputs=succeeded_outputs,
             failed_outputs=failed_outputs,
         )

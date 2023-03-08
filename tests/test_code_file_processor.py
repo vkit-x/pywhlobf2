@@ -4,6 +4,7 @@ import os
 
 import iolite as io
 
+from pywhlobf.component.cpp_compiler import CppCompilerConfig
 from pywhlobf.code_file_processor import (
     ExecutionContextCollection,
     CodeFileProcessorConfig,
@@ -47,7 +48,9 @@ def test_code_file_processor():
     working_fd = get_test_output_fd()
     test_py_file = get_test_py_file()
 
-    config = CodeFileProcessorConfig()
+    config = CodeFileProcessorConfig(
+        cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600)
+    )
     config.source_code_injector_config.fernet_key = 'WwAPKBMXKl-I43L4u8B5WD9xoperM9qhXDlLVWRFkiY='
     code_file_processor = CodeFileProcessor(config)
 

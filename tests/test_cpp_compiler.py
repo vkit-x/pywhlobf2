@@ -38,7 +38,7 @@ def test_cpp_compiler():
     )
     assert source_code_injector_activated
 
-    cpp_compiler = CppCompiler(CppCompilerConfig())
+    cpp_compiler = CppCompiler(CppCompilerConfig(setup_build_ext_timeout=600))
     compiled_lib_file = cpp_compiler.run(
         ext_module=ext_module,
         working_fd=output_fd,
