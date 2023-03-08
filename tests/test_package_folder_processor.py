@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 
+from pywhlobf.component.cpp_compiler import CppCompilerConfig
 from pywhlobf.code_file_processor import CodeFileProcessorConfig
 from pywhlobf.package_folder_processor import (
     PackageFolderProcessorConfig,
@@ -18,7 +19,10 @@ def test_package_folder_processor():
 
     package_folder_processor = PackageFolderProcessor(
         PackageFolderProcessorConfig(
-            code_file_processor_config=CodeFileProcessorConfig(verbose=True),
+            code_file_processor_config=CodeFileProcessorConfig(
+                cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600),
+                verbose=True,
+            ),
         )
     )
     output = package_folder_processor.run(
