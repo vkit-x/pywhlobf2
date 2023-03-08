@@ -1,3 +1,4 @@
+# pyright: reportUnboundVariable=false
 from typing import Optional, Sequence, List
 from pathlib import Path
 import tempfile
@@ -14,6 +15,7 @@ from .code_folder_processor import (
     CodeFolderProcessorOutput,
     CodeFolderProcessor,
 )
+from .execution_context import ExecutionContextCollection
 
 
 @attrs.define
@@ -21,12 +23,14 @@ class WheelFileProcessorConfig:
     code_folder_processor_config: CodeFolderProcessorConfig = attrs.field(
         factory=CodeFolderProcessorConfig
     )
+    verbose: bool = False
 
 
 @attrs.define
 class WheelFileProcessorOutput:
     output_wheel_file: Optional[Path]
-    code_folder_processor_outputs: Sequence[CodeFolderProcessorOutput]
+    code_folder_processor_outputs: Optional[Sequence[CodeFolderProcessorOutput]]
+    execution_context_collection: ExecutionContextCollection
 
     @property
     def succeeded(self):
@@ -96,57 +100,69 @@ class WheelFileProcessor:
         else:
             working_fd = io.folder(working_fd, reset=True)
 
-        # Unzip wheel.
-        wheel_fd = io.folder(working_fd / 'wheel', touch=True)
-        assert wheel_file.is_file()
-        with zipfile.ZipFile(wheel_file) as zip_file:
-            zip_file.extractall(wheel_fd)
+        logging_fd = io.folder(working_fd / 'logging', touch=True)
 
-        # Process.
-        code_folder_processor_outputs: List[CodeFolderProcessorOutput] = []
-        # https://peps.python.org/pep-0427/#file-contents
-        for input_fd in wheel_fd.glob('*/'):
-            if not input_fd.is_dir():
-                continue
-            if input_fd.suffix in ('.dist-info', '.data'):
-                continue
-            code_folder_processor_outputs.append(
-                self.code_folder_processor.run(
-                    input_fd=input_fd,
-                    working_fd=(working_fd / 'working' / input_fd.name),
-                )
-            )
-
-        failed = False
-        for code_folder_processor_output in code_folder_processor_outputs:
-            if not code_folder_processor_output.succeeded:
-                failed = True
-                break
-
-        if failed:
-            return WheelFileProcessorOutput(
-                output_wheel_file=None,
-                code_folder_processor_outputs=code_folder_processor_outputs,
-            )
-
-        # Zip wheel.
-        (
-            distribution,
-            version,
-            build_tag,
-        ) = extract_components_from_wheel_file_stem(wheel_file.stem)
-        output_wheel_name = generate_wheel_name(
-            distribution=distribution,
-            version=version,
-            build_tag=build_tag,
-            abi_tag=output_wheel_abi_tag,
-            platform_tag=output_wheel_platform_tag,
+        execution_context_collection = ExecutionContextCollection(
+            logging_fd=logging_fd,
+            verbose=self.config.verbose,
         )
-        output_wheel_file = working_fd / output_wheel_name
-        with WheelFile(output_wheel_file, 'w') as wf:
-            wf.write_files(wheel_fd)
+
+        with execution_context_collection.guard('unzip_wheel') as should_run:
+            assert should_run
+            # Unzip wheel.
+            wheel_fd = io.folder(working_fd / 'wheel', touch=True)
+            assert wheel_file.is_file()
+            with zipfile.ZipFile(wheel_file) as zip_file:
+                zip_file.extractall(wheel_fd)
+
+        code_folder_processor_outputs: Optional[List[CodeFolderProcessorOutput]] = None
+        with execution_context_collection.guard('process_wheel') as should_run:
+            if should_run:
+                # Process.
+                code_folder_processor_outputs = []
+                # https://peps.python.org/pep-0427/#file-contents
+                for input_fd in wheel_fd.glob('*/'):
+                    if not input_fd.is_dir():
+                        continue
+                    if input_fd.suffix in ('.dist-info', '.data'):
+                        continue
+                    code_folder_processor_outputs.append(
+                        self.code_folder_processor.run(
+                            input_fd=input_fd,
+                            working_fd=(working_fd / 'working' / input_fd.name),
+                        )
+                    )
+
+                failed = False
+                for code_folder_processor_output in code_folder_processor_outputs:
+                    if not code_folder_processor_output.succeeded:
+                        failed = True
+                        break
+                if failed:
+                    raise RuntimeError('Failed to process code folder.')
+
+        output_wheel_file = None
+        with execution_context_collection.guard('zip_wheel') as should_run:
+            if should_run:
+                # Zip wheel.
+                (
+                    distribution,
+                    version,
+                    build_tag,
+                ) = extract_components_from_wheel_file_stem(wheel_file.stem)
+                output_wheel_name = generate_wheel_name(
+                    distribution=distribution,
+                    version=version,
+                    build_tag=build_tag,
+                    abi_tag=output_wheel_abi_tag,
+                    platform_tag=output_wheel_platform_tag,
+                )
+                output_wheel_file = working_fd / output_wheel_name
+                with WheelFile(output_wheel_file, 'w') as wf:
+                    wf.write_files(wheel_fd)
 
         return WheelFileProcessorOutput(
             output_wheel_file=output_wheel_file,
             code_folder_processor_outputs=code_folder_processor_outputs,
+            execution_context_collection=execution_context_collection,
         )

@@ -10,4 +10,5 @@ def test_wheel_file_processor():
     wheel_file = get_test_wheel_file()
     wheel_file_processor = WheelFileProcessor(WheelFileProcessorConfig())
     output = wheel_file_processor.run(wheel_file=wheel_file, working_fd=working_fd)
+    print(output.execution_context_collection.get_logging_message())
     assert output.succeeded

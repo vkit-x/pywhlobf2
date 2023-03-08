@@ -240,7 +240,7 @@ jobs:
 
           # Download & unzip wheel 0.38.4
           $OUTPUT_DIR = (New-Item -Path (Join-Path -Path $PYWHLOBF_DATA "test-data/wheel-0.38.4") -Type Directory -Force)
-          $WHEEL_FILE = (Join-Path -Path $OUTPUT_DIR "wheel-0.38.4-py2.py3-none-any.whl")
+          $WHEEL_FILE = (Join-Path -Path $OUTPUT_DIR "wheel-0.38.4-py3-none-any.whl")
           Invoke-WebRequest `
             https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl `
             -Outfile $WHEEL_FILE
