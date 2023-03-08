@@ -78,3 +78,18 @@ def get_test_code_fd():
             expandvars=True,
             exists=True,
         )
+
+
+def get_test_wheel_file():
+    if cython_version[0] != '3':
+        return io.file(
+            '$PYWHLOBF_DATA/test-data/wheel-0.37.1/wheel-0.37.1-py2.py3-none-any.whl',
+            expandvars=True,
+            exists=True,
+        )
+    else:
+        return io.file(
+            '$PYWHLOBF_DATA/test-data/wheel-0.38.4/wheel-0.38.4-py3-none-any.whl',
+            expandvars=True,
+            exists=True,
+        )

@@ -36,6 +36,10 @@ class CodeFolderProcessorOutput:
     succeeded_outputs: Sequence[CodeFileProcessorOutput]
     failed_outputs: Sequence[CodeFileProcessorOutput]
 
+    @property
+    def succeeded(self):
+        return (not self.failed_outputs)
+
 
 def process_py_file(
     num_processes: Optional[int],
