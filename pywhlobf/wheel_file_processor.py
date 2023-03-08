@@ -11,10 +11,10 @@ import iolite as io
 from wheel.bdist_wheel import get_abi_tag, get_platform
 from wheel.wheelfile import WheelFile
 
-from .code_folder_processor import (
-    CodeFolderProcessorConfig,
-    CodeFolderProcessorOutput,
-    CodeFolderProcessor,
+from .package_folder_processor import (
+    PackageFolderProcessorConfig,
+    PackageFolderProcessorOutput,
+    PackageFolderProcessor,
 )
 from .execution_context import ExecutionContextCollection
 
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 @attrs.define
 class WheelFileProcessorConfig:
-    code_folder_processor_config: CodeFolderProcessorConfig = attrs.field(
-        factory=CodeFolderProcessorConfig
+    package_folder_processor_config: PackageFolderProcessorConfig = attrs.field(
+        factory=PackageFolderProcessorConfig
     )
     verbose: bool = False
 
@@ -32,7 +32,7 @@ class WheelFileProcessorConfig:
 @attrs.define
 class WheelFileProcessorOutput:
     output_wheel_file: Optional[Path]
-    code_folder_processor_outputs: Optional[Sequence[CodeFolderProcessorOutput]]
+    package_folder_processor_outputs: Optional[Sequence[PackageFolderProcessorOutput]]
     execution_context_collection: ExecutionContextCollection
 
     @property
@@ -88,7 +88,8 @@ class WheelFileProcessor:
 
     def __init__(self, config: WheelFileProcessorConfig):
         self.config = config
-        self.code_folder_processor = CodeFolderProcessor(config.code_folder_processor_config)
+        self.package_folder_processor = \
+            PackageFolderProcessor(config.package_folder_processor_config)
 
     def run(
         self,
@@ -119,11 +120,11 @@ class WheelFileProcessor:
             with zipfile.ZipFile(wheel_file) as zip_file:
                 zip_file.extractall(wheel_fd)
 
-        code_folder_processor_outputs: Optional[List[CodeFolderProcessorOutput]] = None
+        package_folder_processor_outputs: Optional[List[PackageFolderProcessorOutput]] = None
         with execution_context_collection.guard('process_wheel') as should_run:
             if should_run:
                 # Process.
-                code_folder_processor_outputs = []
+                package_folder_processor_outputs = []
                 # https://peps.python.org/pep-0427/#file-contents
                 for input_fd in wheel_fd.glob('*/'):
                     if not input_fd.is_dir():
@@ -131,16 +132,16 @@ class WheelFileProcessor:
                     if input_fd.suffix in ('.dist-info', '.data'):
                         continue
                     logger.info(f'Processing input_fd={input_fd}')
-                    code_folder_processor_outputs.append(
-                        self.code_folder_processor.run(
+                    package_folder_processor_outputs.append(
+                        self.package_folder_processor.run(
                             input_fd=input_fd,
                             working_fd=(working_fd / 'working' / input_fd.name),
                         )
                     )
 
                 failed = False
-                for code_folder_processor_output in code_folder_processor_outputs:
-                    if not code_folder_processor_output.succeeded:
+                for package_folder_processor_output in package_folder_processor_outputs:
+                    if not package_folder_processor_output.succeeded:
                         failed = True
                         break
                 if failed:
@@ -168,6 +169,6 @@ class WheelFileProcessor:
 
         return WheelFileProcessorOutput(
             output_wheel_file=output_wheel_file,
-            code_folder_processor_outputs=code_folder_processor_outputs,
+            package_folder_processor_outputs=package_folder_processor_outputs,
             execution_context_collection=execution_context_collection,
         )

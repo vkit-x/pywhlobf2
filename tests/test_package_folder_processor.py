@@ -3,25 +3,25 @@ import sys
 import subprocess
 
 from pywhlobf.code_file_processor import CodeFileProcessorConfig
-from pywhlobf.code_folder_processor import (
-    CodeFolderProcessorConfig,
-    CodeFolderProcessor,
+from pywhlobf.package_folder_processor import (
+    PackageFolderProcessorConfig,
+    PackageFolderProcessor,
 )
 from tests.opt import get_test_output_fd, get_test_code_fd
 
 
-def test_code_folder_processor():
+def test_package_folder_processor():
     test_output_fd = get_test_output_fd()
     working_fd = test_output_fd / 'working'
     input_fd = get_test_code_fd()
     output_fd = test_output_fd / 'output' / input_fd.name
 
-    code_folder_processor = CodeFolderProcessor(
-        CodeFolderProcessorConfig(
+    package_folder_processor = PackageFolderProcessor(
+        PackageFolderProcessorConfig(
             code_file_processor_config=CodeFileProcessorConfig(verbose=True),
         )
     )
-    output = code_folder_processor.run(
+    output = package_folder_processor.run(
         input_fd=input_fd,
         output_fd=output_fd,
         working_fd=working_fd,
