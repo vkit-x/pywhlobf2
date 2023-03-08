@@ -13,7 +13,6 @@ def test_code_folder_processor():
 
     code_folder_processor = CodeFolderProcessor(
         CodeFolderProcessorConfig(
-            wrap_code_file_processor_outputs_in_tqdm=True,
             code_file_processor_config=CodeFileProcessorConfig(verbose=True),
         )
     )

@@ -7,7 +7,6 @@ import shutil
 
 import attrs
 import iolite as io
-from tqdm import tqdm
 
 from .code_file_processor import (
     CodeFileProcessorConfig,
@@ -28,7 +27,6 @@ class CodeFolderProcessorConfig:
     delete_processed_code_file: bool = True
     num_processes: Optional[int] = None
     reset_output_fd: bool = False
-    wrap_code_file_processor_outputs_in_tqdm: bool = False
 
 
 @attrs.define
@@ -107,8 +105,6 @@ class CodeFolderProcessor:
             ),
             py_files=py_files,
         )
-        if self.config.wrap_code_file_processor_outputs_in_tqdm:
-            outputs = tqdm(outputs, total=len(py_files))
 
         succeeded_outputs: List[CodeFileProcessorOutput] = []
         failed_outputs: List[CodeFileProcessorOutput] = []
