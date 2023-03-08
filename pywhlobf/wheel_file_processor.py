@@ -63,7 +63,7 @@ def generate_wheel_name(
     abi_tag = abi_tag or get_abi_tag()
     assert abi_tag
 
-    # NOTE: archive_root is only used in `calculate_macosx_platform_tag`, which could be ignored. See:
+    # NOTE: archive_root is only used in `calculate_macosx_platform_tag`, which could be ignored.
     # https://github.com/pypa/wheel/blob/895558fc74f694dc6132723cfee58752d14c1482/src/wheel/bdist_wheel.py#L47
     platform_tag = platform_tag or get_platform(None)
     # https://peps.python.org/pep-0425/#platform-tag
