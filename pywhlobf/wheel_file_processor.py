@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import zipfile
 import sys
+import logging
 
 import attrs
 import iolite as io
@@ -16,6 +17,8 @@ from .code_folder_processor import (
     CodeFolderProcessor,
 )
 from .execution_context import ExecutionContextCollection
+
+logger = logging.getLogger(__name__)
 
 
 @attrs.define
@@ -111,6 +114,7 @@ class WheelFileProcessor:
             assert should_run
             # Unzip wheel.
             wheel_fd = io.folder(working_fd / 'wheel', touch=True)
+            logger.info(f'Unzip wheel_file={wheel_file} to wheel_fd={wheel_fd}')
             assert wheel_file.is_file()
             with zipfile.ZipFile(wheel_file) as zip_file:
                 zip_file.extractall(wheel_fd)
@@ -126,6 +130,7 @@ class WheelFileProcessor:
                         continue
                     if input_fd.suffix in ('.dist-info', '.data'):
                         continue
+                    logger.info(f'Processing input_fd={input_fd}')
                     code_folder_processor_outputs.append(
                         self.code_folder_processor.run(
                             input_fd=input_fd,
