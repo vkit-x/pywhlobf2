@@ -1,6 +1,7 @@
 from typing import Mapping, Union
 from pathlib import Path
 import shutil
+import re
 
 import attrs
 from setuptools import Extension
@@ -23,6 +24,43 @@ class CppGenerator:
 
     def __init__(self, config: CppGeneratorConfig):
         self.config = config
+
+    @classmethod
+    def patch_cpp_file_generated_by_cython2(cls, py_file: Path, cpp_file: Path):
+        if py_file.stem != '__init__':
+            return
+
+        code = cpp_file.read_text()
+        if 'PyInit___init__' in code:
+            # Cython3, no need to patch.
+            return
+
+        shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_patching_init'))
+
+        # Inject PyInit___init__ for Windows.
+        pattern_py_init_prefix = rf'^__Pyx_PyMODINIT_FUNC\s+PyInit_{py_file.parent.name}\(void\)'
+        pattern_py_init_suffix = r'\s+CYTHON_SMALL_CODE;\s+/\*proto\*/'
+        pattern_py_init = (
+            rf'^({pattern_py_init_prefix}{pattern_py_init_suffix})\n'
+            rf'^({pattern_py_init_prefix})'
+        )
+
+        code_snippet = f'''
+#if !defined(CYTHON_NO_PYINIT_EXPORT) && (defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS))
+__Pyx_PyMODINIT_FUNC PyInit___init__(void) {{ return PyInit_{py_file.parent.name}(); }}
+#endif
+'''
+        code = re.sub(
+            pattern_py_init,
+            '\n'.join([
+                r'\1',
+                code_snippet.strip(),
+                r'\2',
+            ]),
+            code,
+            flags=re.MULTILINE,
+        )
+        cpp_file.write_text(code)
 
     def run(self, py_file: Path, working_fd: Path):
         '''
@@ -67,5 +105,8 @@ class CppGenerator:
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()
+
+        # Patch.
+        self.patch_cpp_file_generated_by_cython2(py_file=py_file, cpp_file=cpp_file)
 
         return cpp_file, ext_module
