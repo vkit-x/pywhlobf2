@@ -1,7 +1,6 @@
 from typing import Mapping, Union
 from pathlib import Path
 import shutil
-import re
 
 import attrs
 from setuptools import Extension
@@ -68,18 +67,5 @@ class CppGenerator:
 
         # Make sure the cpp file is generated.
         assert cpp_file.is_file()
-
-        if py_file.stem == '__init__':
-            # Patch PyInit_#name.
-            code = cpp_file.read_text()
-            shutil.copyfile(cpp_file, cpp_file.with_suffix('.cpp.bak_before_patching_init'))
-            code = re.sub(
-                rf'PyInit_{py_file.parent.name}\(',
-                'PyInit___init__(',
-                code,
-            )
-            cpp_file.write_text(code)
-            # Patch cython3 codegen.
-            ext_module.define_macros.append(('CYTHON_NO_PYINIT_EXPORT', '1'))
 
         return cpp_file, ext_module
