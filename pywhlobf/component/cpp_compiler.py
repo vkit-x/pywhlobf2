@@ -57,10 +57,11 @@ if BuildVariable.PYLIB_DYN == BuildVariable.PYLIB:
 
     pylib_file = io.folder(BuildVariable.LIBDIR1) / BuildVariable.PYLIB
     if not pylib_file.exists():
-        # 'libpython3.10.a' -> 'libpython3.10'.
-        pylib_file = pylib_file.with_suffix('')
+        # 'lib(XYZ).a' -> 'XYZ'.
+        patch_name = os.path.splitext(BuildVariable.PYLIB[3:])[0]
+        pylib_file = pylib_file.with_name(patch_name)
         if pylib_file.exists():
-            BuildVariable.PYLIB = os.path.splitext(BuildVariable.PYLIB)[0]
+            BuildVariable.PYLIB = patch_name
         else:
             raise NotImplementedError()
 
