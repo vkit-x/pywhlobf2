@@ -261,16 +261,19 @@ class CppCompiler:
                 str(complied_object_file),
                 '-L' + BuildVariable.LIBDIR1,
                 '-L' + BuildVariable.LIBDIR2,
-                (
-                    BuildVariable.PYLIB_DYN and ('-l' + BuildVariable.PYLIB_DYN)
-                    or os.path.join(BuildVariable.LIBDIR1, BuildVariable.PYLIB)
-                ),
             ]
+            if BuildVariable.PYLIB_DYN:
+                args.append('-l' + BuildVariable.PYLIB_DYN)
+            elif BuildVariable.PYLIB:
+                args.append('-l' + BuildVariable.PYLIB)
+            else:
+                raise NotImplementedError()
             args.extend(BuildVariable.LIBS.split())
             args.extend(BuildVariable.SYSLIBS.split())
             args.extend(BuildVariable.LINKFORSHARED.split())
+            args_cmd = ' '.join(args)
             process_build_exe = subprocess.run(
-                ' '.join(args),
+                args_cmd,
                 shell=True,
                 capture_output=True,
                 text=True,
@@ -279,6 +282,7 @@ class CppCompiler:
             if process_build_exe.returncode != 0:
                 raise ProcessError(
                     'Failed to build exe.\n'
+                    f'args_cmd={args_cmd}'
                     f'stdout={process_build_exe.stdout}\n'
                     f'stderr={process_build_exe.stderr}'
                 )
