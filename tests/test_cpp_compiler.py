@@ -18,7 +18,7 @@ from pywhlobf.component.cpp_compiler import (
     CppCompilerConfig,
     CppCompiler,
 )
-from pywhlobf.command_line_nterface import run_c_extension
+from pywhlobf.command_line_interface import run_c_extension
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
