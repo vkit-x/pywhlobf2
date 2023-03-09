@@ -18,7 +18,7 @@ from pywhlobf.component.cpp_compiler import (
     CppCompilerConfig,
     CppCompiler,
 )
-from pywhlobf.command_line_interface import run_c_extension
+from pywhlobf.command_line_interface import run_extension_file
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     assert compiled_lib_file.is_file()
 
     process = Process(
-        target=run_c_extension,
+        target=run_extension_file,
         args=(compiled_lib_file,),
     )
     process.start()
