@@ -54,6 +54,16 @@ class BuildVariable:
 if BuildVariable.PYLIB_DYN == BuildVariable.PYLIB:
     # Not a shared library.
     BuildVariable.PYLIB_DYN = ''
+
+    pylib_file = io.folder(BuildVariable.LIBDIR1) / BuildVariable.PYLIB
+    if not pylib_file.exists():
+        # 'libpython3.10.a' -> 'libpython3.10'.
+        pylib_file = pylib_file.with_suffix('')
+        if pylib_file.exists():
+            BuildVariable.PYLIB = os.path.splitext(BuildVariable.PYLIB)[0]
+        else:
+            raise NotImplementedError()
+
 else:
     # 'lib(XYZ).so' -> 'XYZ'.
     BuildVariable.PYLIB_DYN = os.path.splitext(BuildVariable.PYLIB_DYN[3:])[0]
@@ -235,7 +245,8 @@ class CppCompiler:
 
         else:
             # https://github.com/cython/cython/blob/master/Cython/Build/BuildExecutable.py
-            complied_object_files = list(temp_fd.glob('**/*.o'))
+            object_file_ext = '.o' if os.name != 'nt' else '.obj'
+            complied_object_files = list(temp_fd.glob(f'**/*{object_file_ext}'))
             assert len(complied_object_files) == 1
             complied_object_file = complied_object_files[0]
 
