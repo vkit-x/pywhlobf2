@@ -2,6 +2,7 @@ from typing import Sequence
 from enum import unique, Enum
 from pathlib import Path
 import os
+import os.path
 import subprocess
 from multiprocessing import Process, ProcessError
 import re
@@ -20,6 +21,8 @@ class CppCompilerConfig:
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
     build_ext_timeout: int = 60
     delete_temp_fd: bool = True
+    enable_build_exe: bool = False
+    build_exe_timeout: int = 60
 
 
 @unique
@@ -27,6 +30,33 @@ class CppCompilerKind(Enum):
     MSVC = 'msvc'
     CLANG = 'clang'
     GCC = 'gcc'
+
+
+def get_config_var(name: str, default: str = '') -> str:
+    return sysconfig.get_config_var(name) or default
+
+
+class BuildVariable:
+    LIBDIR1 = get_config_var('LIBDIR')
+    LIBDIR2 = get_config_var('LIBPL')
+    PYLIB = get_config_var('LIBRARY')
+    PYLIB_DYN = get_config_var('LDLIBRARY')
+    CC = get_config_var('CC', os.environ.get('CC', ''))
+    CXX = get_config_var('CXX')
+    CFLAGS = get_config_var('CFLAGS') + ' ' + os.environ.get('CFLAGS', '')
+    LINKCC = get_config_var('LINKCC', os.environ.get('LINKCC', CC))
+    LINKFORSHARED = get_config_var('LINKFORSHARED')
+    LIBS = get_config_var('LIBS')
+    SYSLIBS = get_config_var('SYSLIBS')
+    EXE_EXT = get_config_var('EXE')
+
+
+if BuildVariable.PYLIB_DYN == BuildVariable.PYLIB:
+    # Not a shared library.
+    BuildVariable.PYLIB_DYN = ''
+else:
+    # 'lib(XYZ).so' -> 'XYZ'.
+    BuildVariable.PYLIB_DYN = os.path.splitext(BuildVariable.PYLIB_DYN[3:])[0]
 
 
 def get_cpp_file_from_ext_module(ext_module: Extension):
@@ -60,8 +90,7 @@ class CppCompiler:
         self.config = config
 
         # Detect C++ compiler.
-        cxx = sysconfig.get_config_var('CXX')
-        if not cxx:
+        if not BuildVariable.CXX:
             assert os.name == 'nt'
             self.cpp_compiler_kind = CppCompilerKind.MSVC
             self.clang_version_major = None
@@ -73,11 +102,12 @@ class CppCompiler:
                 # https://en.cppreference.com/w/cpp/header/ciso646
                 # NOTE: It's fine since we don't use c++20.
                 'printf "#include <ciso646>\nint main () {}" '
-                f'| {cxx} -E -x c++ -dM -',
+                f'| {BuildVariable.CXX} -E -x c++ -dM -',
                 shell=True,
                 capture_output=True,
                 check=True,
                 text=True,
+                timeout=self.config.build_ext_timeout,
             )
             stdout = process.stdout
 
@@ -167,7 +197,7 @@ class CppCompiler:
         cpp_file = get_cpp_file_from_ext_module(ext_module)
         temp_fd = io.folder(tempfile.mkdtemp(), exists=True)
 
-        process = Process(
+        process_build_ext = Process(
             target=build_ext,
             kwargs={
                 'ext_module': ext_module,
@@ -175,12 +205,12 @@ class CppCompiler:
                 'temp_fd': temp_fd,
             },
         )
-        process.start()
-        process.join(timeout=self.config.build_ext_timeout)
+        process_build_ext.start()
+        process_build_ext.join(timeout=self.config.build_ext_timeout)
 
-        if process.exitcode != 0:
-            process.kill()
-            if process.exitcode is None:
+        if process_build_ext.exitcode != 0:
+            process_build_ext.kill()
+            if process_build_ext.exitcode is None:
                 raise ProcessError('Compilation timeout.')
             else:
                 raise ProcessError('Compilation failed.')
@@ -195,9 +225,56 @@ class CppCompiler:
         else:
             raise NotImplementedError()
 
+        compiled_lib_files = tuple(cpp_file.parent.glob(f'{cpp_file.stem}.*{ext}'))
+        assert len(compiled_lib_files) == 1
+        compiled_lib_file = compiled_lib_files[0]
+        assert compiled_lib_file.is_file()
+
+        if not self.config.enable_build_exe:
+            compiled_file = compiled_lib_file
+
+        else:
+            # https://github.com/cython/cython/blob/master/Cython/Build/BuildExecutable.py
+            complied_object_files = list(temp_fd.glob('**/*.o'))
+            assert len(complied_object_files) == 1
+            complied_object_file = complied_object_files[0]
+
+            compiled_exe_file = compiled_lib_file.parent / complied_object_file.name
+            compiled_exe_file = compiled_exe_file.with_suffix(BuildVariable.EXE_EXT)
+
+            args = [
+                BuildVariable.LINKCC,
+                '-o',
+                str(compiled_exe_file),
+                str(complied_object_file),
+                '-L' + BuildVariable.LIBDIR1,
+                '-L' + BuildVariable.LIBDIR2,
+                (
+                    BuildVariable.PYLIB_DYN and ('-l' + BuildVariable.PYLIB_DYN)
+                    or os.path.join(BuildVariable.LIBDIR1, BuildVariable.PYLIB)
+                ),
+            ]
+            args.extend(BuildVariable.LIBS.split())
+            args.extend(BuildVariable.SYSLIBS.split())
+            args.extend(BuildVariable.LINKFORSHARED.split())
+            process_build_exe = subprocess.run(
+                ' '.join(args),
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=self.config.build_exe_timeout,
+            )
+            if process_build_exe.returncode != 0:
+                raise ProcessError(
+                    'Failed to build exe.\n'
+                    f'stdout={process_build_exe.stdout}\n'
+                    f'stderr={process_build_exe.stderr}'
+                )
+
+            assert compiled_exe_file.is_file()
+            compiled_file = compiled_exe_file
+
         if self.config.delete_temp_fd:
             shutil.rmtree(temp_fd)
 
-        compiled_lib_files = tuple(cpp_file.parent.glob(f'{cpp_file.stem}.*{ext}'))
-        assert len(compiled_lib_files) == 1
-        return compiled_lib_files[0]
+        return compiled_file
