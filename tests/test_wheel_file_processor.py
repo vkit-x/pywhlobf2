@@ -15,7 +15,7 @@ def test_wheel_file_processor():
         WheelFileProcessorConfig(
             package_folder_processor_config=PackageFolderProcessorConfig(
                 code_file_processor_config=CodeFileProcessorConfig(
-                    cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600)
+                    cpp_compiler_config=CppCompilerConfig(build_ext_timeout=600)
                 )
             )
         )

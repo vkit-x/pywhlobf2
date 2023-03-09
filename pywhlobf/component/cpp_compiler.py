@@ -18,7 +18,7 @@ from setuptools import setup, Extension
 class CppCompilerConfig:
     # TODO: support extra arguments listed in
     # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html#setuptools.Extension
-    setup_build_ext_timeout: int = 60
+    build_ext_timeout: int = 60
     delete_temp_fd: bool = True
 
 
@@ -35,7 +35,7 @@ def get_cpp_file_from_ext_module(ext_module: Extension):
     return cpp_file
 
 
-def setup_build_ext(
+def build_ext(
     ext_module: Extension,
     working_fd: Path,
     temp_fd: Path,
@@ -168,7 +168,7 @@ class CppCompiler:
         temp_fd = io.folder(tempfile.mkdtemp(), exists=True)
 
         process = Process(
-            target=setup_build_ext,
+            target=build_ext,
             kwargs={
                 'ext_module': ext_module,
                 'working_fd': working_fd,
@@ -176,7 +176,7 @@ class CppCompiler:
             },
         )
         process.start()
-        process.join(timeout=self.config.setup_build_ext_timeout)
+        process.join(timeout=self.config.build_ext_timeout)
 
         if process.exitcode != 0:
             process.kill()

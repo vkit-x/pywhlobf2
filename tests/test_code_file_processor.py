@@ -49,7 +49,7 @@ def test_code_file_processor():
     test_py_file = get_test_py_file()
 
     config = CodeFileProcessorConfig(
-        cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600)
+        cpp_compiler_config=CppCompilerConfig(build_ext_timeout=600)
     )
     config.source_code_injector_config.fernet_key = 'WwAPKBMXKl-I43L4u8B5WD9xoperM9qhXDlLVWRFkiY='
     code_file_processor = CodeFileProcessor(config)
