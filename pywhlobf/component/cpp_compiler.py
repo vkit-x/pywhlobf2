@@ -54,16 +54,8 @@ class BuildVariable:
 if BuildVariable.PYLIB_DYN == BuildVariable.PYLIB:
     # Not a shared library.
     BuildVariable.PYLIB_DYN = ''
-
-    pylib_file = io.folder(BuildVariable.LIBDIR1) / BuildVariable.PYLIB
-    if not pylib_file.exists():
-        # 'lib(XYZ).a' -> 'XYZ'.
-        patch_name = os.path.splitext(BuildVariable.PYLIB[3:])[0]
-        pylib_file = pylib_file.with_name(patch_name)
-        if pylib_file.exists():
-            BuildVariable.PYLIB = patch_name
-        else:
-            raise NotImplementedError()
+    # 'lib(XYZ).a' -> 'XYZ'.
+    BuildVariable.PYLIB = os.path.splitext(BuildVariable.PYLIB[3:])[0]
 
 else:
     # 'lib(XYZ).so' -> 'XYZ'.
