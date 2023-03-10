@@ -67,6 +67,8 @@ class SourceCodeInjector:
         for src_line in py_file.read_text().splitlines():
             encrypted_src_line = cls.encrypt(fernet, src_line)
             lines.append(f'"{encrypted_src_line}\\\\n"')
+        # Adding empty string to handle empty file.
+        lines.append('""')
         encrypted_src_code = '\n'.join(lines) + ';'
 
         # Encrypt file name or relative path.
