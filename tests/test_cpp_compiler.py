@@ -1,6 +1,9 @@
 import sys
 import subprocess
 import os
+from multiprocessing import Process
+
+import iolite as io
 
 from pywhlobf.component.cpp_generator import CppGeneratorConfig, CppGenerator
 from pywhlobf.component.string_literal_obfuscator import (
@@ -15,6 +18,7 @@ from pywhlobf.component.cpp_compiler import (
     CppCompilerConfig,
     CppCompiler,
 )
+from pywhlobf.command_line_interface import run_extension_file
 from tests.opt import get_test_output_fd, get_test_py_file
 
 
@@ -68,3 +72,39 @@ def test_cpp_compiler():
     encrypted_traceback = process.stderr
     assert 'wheel' not in encrypted_traceback
     assert encrypted_traceback.count('(pywhlobf') == 3
+
+
+def test_cpp_compiler_simple():
+    test_output_fd = get_test_output_fd()
+    test_py_file = test_output_fd / 'simple.py'
+    test_py_file.write_text(
+        '''
+def foo():
+    return 42
+
+if __name__ == '__main__':
+    print(foo())
+'''
+    )
+
+    output_fd = io.folder(test_output_fd / 'working', touch=True)
+    cpp_generator = CppGenerator(CppGeneratorConfig())
+    _, ext_module = cpp_generator.run(test_py_file, output_fd)
+
+    cpp_compiler = CppCompiler(CppCompilerConfig(setup_build_ext_timeout=600))
+    compiled_lib_file = cpp_compiler.run(
+        ext_module=ext_module,
+        working_fd=output_fd,
+        include_fds=[],
+        string_literal_obfuscator_activated=False,
+        source_code_injector_activated=False,
+    )
+    assert compiled_lib_file.is_file()
+
+    process = Process(
+        target=run_extension_file,
+        args=(compiled_lib_file,),
+    )
+    process.start()
+    process.join(timeout=10)
+    assert process.exitcode == 0
