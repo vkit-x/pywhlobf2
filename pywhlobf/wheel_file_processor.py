@@ -39,6 +39,16 @@ class WheelFileProcessorOutput:
     def succeeded(self):
         return bool(self.output_wheel_file)
 
+    def get_logging_message(self, verbose: bool = False):
+        logging_messages: List[str] = []
+
+        logging_messages.append(self.execution_context_collection.get_logging_message())
+        if self.package_folder_processor_outputs:
+            for output in self.package_folder_processor_outputs:
+                logging_messages.append(output.get_logging_message(verbose))
+
+        return '\n'.join(logging_messages)
+
 
 def extract_components_from_wheel_file_stem(wheel_file_stem: str):
     # https://www.python.org/dev/peps/pep-0427/
@@ -94,9 +104,9 @@ class WheelFileProcessor:
     def run(
         self,
         wheel_file: Path,
+        output_abi_tag: Optional[str] = None,
+        output_platform_tag: Optional[str] = None,
         working_fd: Optional[Path] = None,
-        output_wheel_abi_tag: Optional[str] = None,
-        output_wheel_platform_tag: Optional[str] = None,
     ):
         # Prepare the working folder.
         if working_fd is None:
@@ -160,8 +170,8 @@ class WheelFileProcessor:
                     distribution=distribution,
                     version=version,
                     build_tag=build_tag,
-                    abi_tag=output_wheel_abi_tag,
-                    platform_tag=output_wheel_platform_tag,
+                    abi_tag=output_abi_tag,
+                    platform_tag=output_platform_tag,
                 )
                 output_wheel_file = working_fd / output_wheel_name
                 with WheelFile(output_wheel_file, 'w') as wf:

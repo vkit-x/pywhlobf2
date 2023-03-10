@@ -38,6 +38,24 @@ class PackageFolderProcessorOutput:
     def succeeded(self):
         return (not self.failed_outputs)
 
+    def get_logging_message(self, verbose: bool = False):
+        logging_messages: List[str] = []
+
+        if verbose:
+            for succeeded_output in self.succeeded_outputs:
+                logging_messages.append('Succeeded log:')
+                logging_messages.append(
+                    succeeded_output.execution_context_collection.get_logging_message()
+                )
+
+        for failed_output in self.failed_outputs:
+            logging_messages.append('Failed log:')
+            logging_messages.append(
+                failed_output.execution_context_collection.get_logging_message()
+            )
+
+        return '\n'.join(logging_messages)
+
 
 def process_py_file(
     num_processes: Optional[int],
