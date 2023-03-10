@@ -1,4 +1,5 @@
 from typing import Any, Optional, Mapping, TypeVar, Type
+from collections import abc
 import sys
 from pathlib import Path
 from importlib.machinery import ExtensionFileLoader, ModuleSpec
@@ -11,8 +12,10 @@ import os
 import iolite as io
 import cattrs
 from cryptography.fernet import Fernet
+import pyperclip
 import fire
 
+from .component.source_code_injector import SourceCodeInjector
 from .code_file_processor import CodeFileProcessorConfig, CodeFileProcessor
 from .package_folder_processor import PackageFolderProcessorConfig, PackageFolderProcessor
 from .wheel_file_processor import WheelFileProcessorConfig, WheelFileProcessor
@@ -80,6 +83,19 @@ def read_config(config_file: str, config_cls: Type[_T]) -> _T:
     return config
 
 
+def search_fernet_key(struct: Mapping[str, Any]):
+    fernet_key = struct.get('fernet_key')
+    if fernet_key:
+        return fernet_key
+    else:
+        for sub_struct in struct.values():
+            if isinstance(sub_struct, abc.Mapping):
+                fernet_key = search_fernet_key(sub_struct)
+                if fernet_key:
+                    return fernet_key
+        return None
+
+
 def prep_fd(folder: Optional[str]):
     if not folder:
         return io.folder(tempfile.mkdtemp(), exists=True)
@@ -120,16 +136,16 @@ class CommandLineInterface:
         Obfuscate a single code file.
 
         :param config_file:
-            JSON config path.
+            The JSON config path.
         :param input_file:
             The code file to be processed.
         :param output_folder:
-            Optional output folder. If not provided, the program will save the output next to
+            An optional output folder. If not provided, the program will save the output next to
             the code file.
         :param working_folder:
-            Optional working folder. If not provided, the program will create a temporary folder.
+            An optional working folder. If not provided, the program will create a temporary folder.
         :param verbose:
-            Optional flag. If set, the program will print the logging message.
+            An optional flag. If set, the program will print the logging message.
         '''
         config = read_config(config_file, CodeFileProcessorConfig)
         code_file_processor = CodeFileProcessor(config)
@@ -201,16 +217,16 @@ class CommandLineInterface:
         Obfuscate a package folder.
 
         :param config_file:
-            JSON config path.
+            The JSON config path.
         :param input_folder:
             The package folder to be processed. The package should be a regular package.
         :param output_folder:
-            Optional output folder. If not provided, the program will save the output next to
+            An optional output folder. If not provided, the program will save the output next to
             the code file.
         :param working_folder:
-            Optional working folder. If not provided, the program will create a temporary folder.
+            An optional working folder. If not provided, the program will create a temporary folder.
         :param verbose:
-            Optional flag. If set, the program will print the logging message.
+            An optional flag. If set, the program will print the logging message.
         '''
         config = read_config(config_file, PackageFolderProcessorConfig)
         package_folder_processor = PackageFolderProcessor(config)
@@ -243,7 +259,7 @@ class CommandLineInterface:
         else:
             print('Failed!', file=sys.stderr)
             print('logging message:', file=sys.stderr)
-            print(print(output.get_logging_message(verbose)), file=sys.stderr)
+            print(output.get_logging_message(verbose), file=sys.stderr)
             sys.exit(1)
 
     def wheel_file_config(
@@ -282,25 +298,25 @@ class CommandLineInterface:
         Obfuscate a wheel file.
 
         :param config_file:
-            JSON config path.
+            The JSON config path.
         :param input_file:
             The wheel file to be processed.
         :param output_folder:
-            Optional output folder. If not provided, the program will save the output next to
+            An optional output folder. If not provided, the program will save the output next to
             the code file.
         :param output_abi_tag:
-            Optional ABI tag. If not provided, the program will try to load envrionment variable
-            PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG. If PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG is not
+            An optional ABI tag. If not provided, the program will try to load envrionment variable
+            `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG`. If `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG` is not
             defined, the program will try to assign the ABI tag based on system config.
         :param output_platform_tag:
-            Optional platform tag. If not provided, the program will try to load envrionment
-            variable PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG. If
-            PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG is not defined, the program will try to assign
+            An optional platform tag. If not provided, the program will try to load envrionment
+            variable `PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG`. If
+            `PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG` is not defined, the program will try to assign
             the platform tag based on system config.
         :param working_folder:
-            Optional working folder. If not provided, the program will create a temporary folder.
+            An optional working folder. If not provided, the program will create a temporary folder.
         :param verbose:
-            Optional flag. If set, the program will print the logging message.
+            An optional flag. If set, the program will print the logging message.
         '''
         config = read_config(config_file, WheelFileProcessorConfig)
         wheel_file_processor = WheelFileProcessor(config)
@@ -349,7 +365,7 @@ class CommandLineInterface:
         else:
             print('Failed!', file=sys.stderr)
             print('logging message:', file=sys.stderr)
-            print(print(output.get_logging_message(verbose)), file=sys.stderr)
+            print(output.get_logging_message(verbose), file=sys.stderr)
             sys.exit(1)
 
     def run_extension_file(self, extension_file_path: str, *args: Any, **kwargs: Any):
@@ -357,20 +373,85 @@ class CommandLineInterface:
         Run an extension file.
 
         :param extension_file_path:
-            Extension file path.
+            The extension file path.
         '''
         extension_file = io.file(extension_file_path, exists=True).absolute()
         assert io.file(sys.argv[2]).absolute() == extension_file
         sys.argv = sys.argv[2:]
         run_extension_file(extension_file)
 
-    def decrypt_message(self):
+    def decrypt_message(
+        self,
+        config_file: Optional[str] = None,
+        fernet_key: Optional[str] = None,
+        input_file: Optional[str] = None,
+        output_file: Optional[str] = None,
+    ):
         '''
-        desc
+        Decrypt the message.
 
-        :param todo:
-            todo.
+        :param config_file:
+            An optional config file generated by `code_file_config`, `package_folder_config`,
+            or `wheel_file_config`. If provided, the program will search for the `fernet_key`
+            in the config file.
+        :param fernet_key:
+            An optional fernet key. If `config_file` is not provided, user should explicitly provide
+            the key here. If `fernet_key` is provided, the program will use this key and ignore
+            `config_file`.
+        :param input_file:
+            An optional text file to be decrypted. If not provided, the program will wait until the
+            clipboard changes, and decrypt the text in clipboard.
+        :param output_file:
+            An optional output file to keep the decrypted message. If not provided, the program will
+            print the decrypted message to stdout.
         '''
+        if not fernet_key:
+            if not config_file:
+                print('Neither `config_file` nor `fernet_key` is provided.')
+                sys.exit(1)
+
+            try:
+                config_json = io.file(config_file, exists=True)
+            except Exception:
+                print(f'config_file={config_file} not found.', file=sys.stderr)
+                sys.exit(1)
+
+            try:
+                struct = io.read_json(config_json)
+            except Exception:
+                print(f'Failed to parse config_file={config_file}.', file=sys.stderr)
+                sys.exit(1)
+
+            fernet_key = search_fernet_key(struct)  # type: ignore
+            if not fernet_key:
+                print(f'config_file={config_file} not found.', file=sys.stderr)
+                sys.exit(1)
+
+        try:
+            fernet = Fernet(fernet_key.encode())
+        except Exception:
+            print(f'Invalid fernet_key={fernet_key}', file=sys.stderr)
+            sys.exit(1)
+
+        if input_file:
+            try:
+                encrypted_message = io.file(input_file, exists=True).read_text()
+            except Exception:
+                print(f'Failed to load input_file={input_file}', file=sys.stderr)
+                sys.exit(1)
+        else:
+            print('Waiting for clipboard to changes...')
+            pyperclip.waitForNewPaste()
+            encrypted_message = str(pyperclip.paste())
+
+        message = SourceCodeInjector.decrept(fernet, encrypted_message)
+
+        if output_file:
+            print(f'Saving decrypted message to {output_file}')
+            io.file(output_file).write_text(message)
+        else:
+            print('Decrypted message:')
+            print(message)
 
 
 def main():
