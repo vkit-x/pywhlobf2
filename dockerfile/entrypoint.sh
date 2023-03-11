@@ -9,9 +9,7 @@ if [ -z "$PYTHON_VERSION" ]; then
     PYTHON_VERSION='3.8'
 fi
 
-if [[ "$PYTHON_VERSION" == "3.7" ]]; then
-    export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp37-cp37m'
-elif [[ "$PYTHON_VERSION" == "3.8" ]]; then
+if [[ "$PYTHON_VERSION" == "3.8" ]]; then
     export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp38-cp38'
 elif [[ "$PYTHON_VERSION" == "3.9" ]]; then
     export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp39-cp39'
