@@ -39,9 +39,9 @@ jobs:
 
           # Build image.
           if [ "${{ matrix.cython3 }}" = 'no' ] ; then
-            TAG="PYWHLOBF_VERSION-${{ matrix.platform_tag }}"
+            TAG="${PYWHLOBF_VERSION}-${{ matrix.platform_tag }}"
           elif  [ "${{ matrix.cython3 }}" = 'yes' ] ; then
-            TAG="PYWHLOBF_VERSION-cython3-${{ matrix.platform_tag }}"
+            TAG="${PYWHLOBF_VERSION}-cython3-${{ matrix.platform_tag }}"
           else
             exit 1
           fi
