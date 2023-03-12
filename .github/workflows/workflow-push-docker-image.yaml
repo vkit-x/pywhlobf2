@@ -16,7 +16,6 @@ jobs:
     strategy:
       matrix:
         platform_tag:
-          - "manylinux2014_i686"
           - "manylinux2014_x86_64"
           - "manylinux_2_24_x86_64"
           - "manylinux_2_28_x86_64"
