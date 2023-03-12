@@ -135,6 +135,7 @@ jobs:
           echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $GITHUB_ENV
 
           export PYWHLOBF_DATA=$(mktemp -d)
+          rm -rf "$PYWHLOBF_DATA" && mkdir -p "$PYWHLOBF_DATA"
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
 
           # Download & unzip wheel 0.37.1
@@ -202,6 +203,7 @@ jobs:
           echo "PYWHLOBF_ROOT=${PYWHLOBF_ROOT}" >> $GITHUB_ENV
 
           export PYWHLOBF_DATA=$(mktemp -d)
+          rm -rf "$PYWHLOBF_DATA" && mkdir -p "$PYWHLOBF_DATA"
           echo "PYWHLOBF_DATA=${PYWHLOBF_DATA}" >> $GITHUB_ENV
 
           # Download & unzip wheel 0.37.1
