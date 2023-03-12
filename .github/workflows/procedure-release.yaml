@@ -17,12 +17,20 @@ jobs:
     secrets:
       pypi-username: ${{ secrets.PYPI_USERNAME }}
       pypi-password: ${{ secrets.PYPI_PASSWORD }}
+  call-workflow-push-docker-image:
+    uses: ./.github/workflows/workflow-push-docker-image.yaml
+    needs: [call-workflow-type-checking, call-workflow-test]
+    secrets:
+      docker-hub-password: ${{ secrets.PYWHLOBF_DOCKER_HUB_PASSWORD }}
+      huaweicloud-area: ${{ secrets.PYWHLOBF_HUAWEICLOUD_AREA }}
+      huaweicloud-ak: ${{ secrets.PYWHLOBF_HUAWEICLOUD_AK }}
+      huaweicloud-token: ${{ secrets.PYWHLOBF_HUAWEICLOUD_TOKEN }}
   call-workflow-alarm:
     uses: ./.github/workflows/workflow-alarm.yaml
-    needs: [call-workflow-type-checking, call-workflow-test, call-workflow-push-wheel-to-pypi]
+    needs: [call-workflow-push-wheel-to-pypi, call-workflow-push-docker-image]
     if: ${{ always() }}
     with:
-      send-alarm: ${{ needs.call-workflow-push-wheel-to-pypi.result != 'success' }}
+      send-alarm: ${{ needs.call-workflow-push-wheel-to-pypi.result != 'success' || needs.call-workflow-push-docker-image.result != 'success' }}
       message: "WARNING: pywhlobf 'Release' failed. run_id=${{ github.run_id }}."
     secrets:
       webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}

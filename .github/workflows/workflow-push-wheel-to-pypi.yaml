@@ -1,4 +1,4 @@
-name: (Workflow) Push to PyPI
+name: (Workflow) Push wheel to PyPI
 on:
   workflow_call:
     secrets:

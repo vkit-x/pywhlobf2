@@ -1,0 +1,73 @@
+name: (Workflow) Push docker image
+on:
+  workflow_call:
+    secrets:
+      docker-hub-password:
+        required: true
+      huaweicloud-area:
+        required: true
+      huaweicloud-ak:
+        required: true
+      huaweicloud-token:
+        required: true
+jobs:
+  workflow-push-docker-image:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        platform_tag:
+          # manylinux2014.
+          - "manylinux2014_x86_64"
+          - "manylinux2014_i686"
+          # manylinux_2_24.
+          - "manylinux_2_24_x86_64"
+          - "manylinux_2_24_i686"
+          # manylinux_2_28.
+          - "manylinux_2_28_x86_64"
+          - "manylinux_2_28_i686"
+        cython3:
+          - "no"
+          - "yes"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build & push
+        run: |
+          # Build wheel.
+          sudo pip install twine build
+          python setup.py clean --all
+          python -m build --wheel
+          PYWHLOBF_WHELL_NAME=$(ls -t dist/*-py3-none-any.whl | head -1 | xargs -n 1 basename)
+          echo "PYWHLOBF_WHELL_NAME=${PYWHLOBF_WHELL_NAME}"
+
+          # Get the pywhlobf version.
+          PYWHLOBF_VERSION=$(python -c "print('${PYWHLOBF_WHELL_NAME}'.split('-')[1])" | xargs)
+          echo "PYWHLOBF_VERSION=${PYWHLOBF_VERSION}"
+
+          # Build image.
+          if [ "${{ matrix.cython3 }}" = 'no' ] ; then
+            TAG="PYWHLOBF_VERSION-${{ matrix.platform_tag }}"
+          elif  [ "${{ matrix.cython3 }}" = 'yes' ] ; then
+            TAG="PYWHLOBF_VERSION-cython3-${{ matrix.platform_tag }}"
+          else
+            exit 1
+          fi
+          echo "TAG=${TAG}"
+
+          docker build \
+            -f dockerfile/Dockerfile \
+            --build-arg PLATFORM_TAG="${{ matrix.platform_tag }}" \
+            --build-arg PYWHLOBF_WHELL_NAME="PYWHLOBF_WHELL_NAME" \
+            --build-arg PYWHLOBF_CYTHON3="${{ matrix.cython3 }}" \
+            -t pywhlobf/pywhlobf:"$TAG" \
+            .
+
+          # Push image.
+          docker login --username=pywhlobf --password=${{ secrets.docker-hub-password }}
+          docker push pywhlobf/pywhlobf:"$TAG"
+
+          docker login \
+            --username="${{ secrets.huaweicloud-area }}@${{ secrets.huaweicloud-ak }}" \
+            --password=${{ secrets.huaweicloud-token }} \
+            "swr.${{ secrets.huaweicloud-area }}.myhuaweicloud.com"
+          docker tag pywhlobf/pywhlobf:"$TAG" swr."${{ secrets.huaweicloud-area }}".myhuaweicloud.com/pywhlobf/pywhlobf:"$TAG"
+          docker push swr."${{ secrets.huaweicloud-area }}".myhuaweicloud.com/pywhlobf/pywhlobf:"$TAG"

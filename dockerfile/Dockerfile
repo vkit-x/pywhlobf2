@@ -1,9 +1,10 @@
+# syntax=docker/dockerfile:1
 ARG PLATFORM_TAG
 
 FROM "quay.io/pypa/${PLATFORM_TAG}"
 
 # For installing pywhlobf.
-ARG PYWHLOBF_VERSION
+ARG PYWHLOBF_WHELL_NAME
 ARG PYWHLOBF_CYTHON3
 
 ENV PYTHONIOENCODING=UTF-8 \
@@ -39,11 +40,12 @@ RUN /usr/sbin/groupadd \
     && \
     printf 'user: %s\ngroup: %s\n' "$FIXUID_USER" "$FIXUID_GROUP" > /etc/fixuid/config.yml
 
-# Pywhlobf
-COPY install.sh /install.sh
-RUN /install.sh
+# Pywhlobf.
+RUN --mount=target=type=bind,target=/b/ \
+    /b/dockerfile/install.sh
 
-COPY entrypoint.sh /entrypoint.sh
+# Entrypoint.
+COPY dockerfile/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
