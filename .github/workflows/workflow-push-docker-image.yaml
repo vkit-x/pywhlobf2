@@ -54,6 +54,7 @@ jobs:
             --build-arg PLATFORM_TAG="${{ matrix.platform_tag }}" \
             --build-arg PYWHLOBF_WHELL_NAME="$PYWHLOBF_WHELL_NAME" \
             --build-arg PYWHLOBF_CYTHON3="${{ matrix.cython3 }}" \
+            --build-arg PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG="${{ matrix.platform_tag }}" \
             -t pywhlobf/pywhlobf:"$TAG" \
             .
           echo "docker build finished."
