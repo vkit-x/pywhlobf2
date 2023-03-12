@@ -305,14 +305,14 @@ class CommandLineInterface:
             An optional output folder. If not provided, the program will save the output next to
             the code file.
         :param output_abi_tag:
-            An optional ABI tag. If not provided, the program will try to load envrionment variable
-            `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG`. If `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG` is not
-            defined, the program will try to assign the ABI tag based on system config.
+            An optional ABI tag. If not provided, the program will attempt to load envrionment
+            variable `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG`. If `PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG`
+            is not defined, the program will attempt to assign the ABI tag based on system config.
         :param output_platform_tag:
-            An optional platform tag. If not provided, the program will try to load envrionment
+            An optional platform tag. If not provided, the program will attempt to load envrionment
             variable `PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG`. If
-            `PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG` is not defined, the program will try to assign
-            the platform tag based on system config.
+            `PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG` is not defined, the program will attempt to
+            assign the platform tag based on system config.
         :param working_folder:
             An optional working folder. If not provided, the program will create a temporary folder.
         :param verbose:
