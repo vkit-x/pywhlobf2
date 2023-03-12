@@ -53,7 +53,7 @@ jobs:
             --progress=plain \
             -f dockerfile/Dockerfile \
             --build-arg PLATFORM_TAG="${{ matrix.platform_tag }}" \
-            --build-arg PYWHLOBF_WHELL_NAME="PYWHLOBF_WHELL_NAME" \
+            --build-arg PYWHLOBF_WHELL_NAME="$PYWHLOBF_WHELL_NAME" \
             --build-arg PYWHLOBF_CYTHON3="${{ matrix.cython3 }}" \
             -t pywhlobf/pywhlobf:"$TAG" \
             .
