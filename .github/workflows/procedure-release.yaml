@@ -7,14 +7,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  call-workflow-type-checking:
+    uses: ./.github/workflows/workflow-type-checking.yaml
+  call-workflow-test:
+    uses: ./.github/workflows/workflow-test.yaml
   call-workflow-push-wheel-to-pypi:
     uses: ./.github/workflows/workflow-push-wheel-to-pypi.yaml
+    needs: [call-workflow-type-checking, call-workflow-test]
     secrets:
       pypi-username: ${{ secrets.PYPI_USERNAME }}
       pypi-password: ${{ secrets.PYPI_PASSWORD }}
   call-workflow-alarm:
     uses: ./.github/workflows/workflow-alarm.yaml
-    needs: [workflow-push-wheel-to-pypi]
+    needs: [call-workflow-type-checking, call-workflow-test, call-workflow-push-wheel-to-pypi]
     if: ${{ always() }}
     with:
       send-alarm: ${{ needs.call-workflow-push-wheel-to-pypi.result != 'success' }}
