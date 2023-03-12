@@ -53,18 +53,23 @@ jobs:
           fi
           echo "TAG=${TAG}"
 
+          export DOCKER_BUILDKIT=1
           docker build \
+            --progress=plain \
             -f dockerfile/Dockerfile \
             --build-arg PLATFORM_TAG="${{ matrix.platform_tag }}" \
             --build-arg PYWHLOBF_WHELL_NAME="PYWHLOBF_WHELL_NAME" \
             --build-arg PYWHLOBF_CYTHON3="${{ matrix.cython3 }}" \
             -t pywhlobf/pywhlobf:"$TAG" \
             .
+          echo "docker build finished."
 
           # Push image.
+          echo "Push to docker hub."
           docker login --username=pywhlobf --password=${{ secrets.docker-hub-password }}
           docker push pywhlobf/pywhlobf:"$TAG"
 
+          echo "Push to huaweicloud."
           docker login \
             --username="${{ secrets.huaweicloud-area }}@${{ secrets.huaweicloud-ak }}" \
             --password=${{ secrets.huaweicloud-token }} \

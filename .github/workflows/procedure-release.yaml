@@ -1,6 +1,10 @@
 name: (Procedure) Release
 on:
   workflow_dispatch:
+    inputs:
+      skip-test:
+        description: "Skip test."
+        default: "no"
   release:
     types: [published]
 concurrency:
@@ -9,8 +13,10 @@ concurrency:
 jobs:
   call-workflow-type-checking:
     uses: ./.github/workflows/workflow-type-checking.yaml
+    if: github.event.inputs.skip-test != 'yes'
   call-workflow-test:
     uses: ./.github/workflows/workflow-test.yaml
+    if: github.event.inputs.skip-test != 'yes'
   call-workflow-push-wheel-to-pypi:
     uses: ./.github/workflows/workflow-push-wheel-to-pypi.yaml
     needs: [call-workflow-type-checking, call-workflow-test]
