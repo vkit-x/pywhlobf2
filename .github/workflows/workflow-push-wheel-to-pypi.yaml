@@ -1,13 +1,6 @@
 name: (Workflow) Push to PyPI
 on:
   workflow_call:
-    inputs:
-      package-name:
-        required: true
-        type: string
-      nightly:
-        required: true
-        type: boolean
     secrets:
       pypi-username:
         required: true
@@ -27,16 +20,6 @@ jobs:
 
           # twine & build.
           sudo pip install twine build
-      - name: Change package name
-        run: |
-          # Build wheel.
-          SED_PATTERN="s|name = pywhlobf|name = ${{ inputs.package-name }}|g"
-          sed -i "$SED_PATTERN" setup.cfg
-      - name: Change nightly version
-        run: |
-          SED_PATTERN="s|version = .*|version = $(date +'%y.%m%d.%H%M')|g"
-          sed -i "$SED_PATTERN" setup.cfg
-        if: inputs.nightly
       - name: Build and push
         run: |
           python setup.py clean --all
