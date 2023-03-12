@@ -1,0 +1,23 @@
+name: (Procedure) Release
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  call-workflow-push-wheel-to-pypi:
+    uses: ./.github/workflows/workflow-push-wheel-to-pypi.yaml
+    secrets:
+      pypi-username: ${{ secrets.PYPI_USERNAME }}
+      pypi-password: ${{ secrets.PYPI_PASSWORD }}
+  call-workflow-alarm:
+    uses: ./.github/workflows/workflow-alarm.yaml
+    needs: [workflow-push-wheel-to-pypi]
+    if: ${{ always() }}
+    with:
+      send-alarm: ${{ needs.call-workflow-push-wheel-to-pypi.result != 'success' }}
+      message: "WARNING: pywhlobf 'Release' failed. run_id=${{ github.run_id }}."
+    secrets:
+      webhook-url: ${{ secrets.VKIT_WECOM_BOT_WEBHOOK_URL }}
