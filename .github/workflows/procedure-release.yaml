@@ -1,10 +1,6 @@
 name: (Procedure) Release
 on:
   workflow_dispatch:
-    inputs:
-      skip-test:
-        description: "Skip test."
-        default: "no"
   release:
     types: [published]
 concurrency:
@@ -13,20 +9,16 @@ concurrency:
 jobs:
   call-workflow-type-checking:
     uses: ./.github/workflows/workflow-type-checking.yaml
-    if: github.event.inputs.skip-test != 'yes'
   call-workflow-test:
     uses: ./.github/workflows/workflow-test.yaml
-    if: github.event.inputs.skip-test != 'yes'
   call-workflow-push-wheel-to-pypi:
     uses: ./.github/workflows/workflow-push-wheel-to-pypi.yaml
-    if: github.event.inputs.skip-test == 'yes' && (needs.call-workflow-type-checking.result == 'success' || needs.call-workflow-test.result == 'success')
     needs: [call-workflow-type-checking, call-workflow-test]
     secrets:
       pypi-username: ${{ secrets.PYPI_USERNAME }}
       pypi-password: ${{ secrets.PYPI_PASSWORD }}
   call-workflow-push-docker-image:
     uses: ./.github/workflows/workflow-push-docker-image.yaml
-    if: github.event.inputs.skip-test == 'yes' && (needs.call-workflow-type-checking.result == 'success' || needs.call-workflow-test.result == 'success')
     needs: [call-workflow-type-checking, call-workflow-test]
     secrets:
       docker-hub-password: ${{ secrets.PYWHLOBF_DOCKER_HUB_PASSWORD }}
