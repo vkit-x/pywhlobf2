@@ -440,7 +440,7 @@ class CommandLineInterface:
                 print(f'Failed to load input_file={input_file}', file=sys.stderr)
                 sys.exit(1)
         else:
-            print('Waiting for clipboard to changes...')
+            print('Awaiting for clipboard to update...')
             pyperclip.waitForNewPaste()
             encrypted_message = str(pyperclip.paste())
 
