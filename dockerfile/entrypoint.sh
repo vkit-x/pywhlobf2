@@ -2,7 +2,7 @@
 set -eo pipefail
 trap "echo 'error: Script failed: see failed command above'" ERR
 
-fixuid -q
+eval $(fixuid -q)
 
 if [ -z "$PYTHON_VERSION" ]; then
     echo "WARNING: PYTHON_VERSION not found, set to 3.8"
