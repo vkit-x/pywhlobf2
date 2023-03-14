@@ -14,6 +14,7 @@ import cattrs
 from cryptography.fernet import Fernet
 import pyperclip
 import fire
+import fire.core
 
 from .component.source_code_injector import SourceCodeInjector
 from .code_file_processor import CodeFileProcessorConfig, CodeFileProcessor
@@ -455,4 +456,11 @@ class CommandLineInterface:
 
 
 def main():
+    # https://github.com/google/python-fire/issues/188
+    def Display(lines, out):  # type: ignore
+        text = "\n".join(lines) + "\n"
+        out.write(text)
+
+    fire.core.Display = Display
+
     fire.Fire(CommandLineInterface)
