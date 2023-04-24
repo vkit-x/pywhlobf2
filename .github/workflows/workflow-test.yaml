@@ -7,8 +7,11 @@ jobs:
     strategy:
       matrix:
         image:
+          # Debian 9 EOL.
           # GCC 6.
-          - "quay.io/pypa/manylinux_2_24_x86_64"
+          # - "quay.io/pypa/manylinux_2_24_x86_64"
+          # GCC 12.
+          - "quay.io/pypa/manylinux_2_28_x86_64"
         python_abi:
           - "cp38-cp38"
           - "cp39-cp39"
@@ -29,16 +32,16 @@ jobs:
           # Cannot test cython3 and legacy deps at the same time.
           - test_cython3: "yes"
             test_legacy_deps: "yes"
-        include:
-          # GCC 12.
-          - image: "quay.io/pypa/manylinux_2_28_x86_64"
-            python_abi: "cp38-cp38"
-            test_legacy_deps: "no"
-            test_cython3: "no"
-          - image: "quay.io/pypa/manylinux_2_28_x86_64"
-            python_abi: "cp38-cp38"
-            test_legacy_deps: "no"
-            test_cython3: "yes"
+        # include:
+        #   # GCC 12.
+        #   - image: "quay.io/pypa/manylinux_2_28_x86_64"
+        #     python_abi: "cp38-cp38"
+        #     test_legacy_deps: "no"
+        #     test_cython3: "no"
+        #   - image: "quay.io/pypa/manylinux_2_28_x86_64"
+        #     python_abi: "cp38-cp38"
+        #     test_legacy_deps: "no"
+        #     test_cython3: "yes"
     container:
       image: ${{ matrix.image }}
     steps:
