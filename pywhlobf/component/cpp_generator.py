@@ -97,7 +97,7 @@ __Pyx_PyMODINIT_FUNC PyInit___init__(void) {{ return PyInit_{py_file.parent.name
             # NOTE: Passing language will trigger a warning message, that is ok.
             language='c++',
             compiler_directives=compiler_directives,
-            **self.config.cythonize_options,
+            **self.config.cythonize_options,  # type: ignore
         )
         assert ext_modules is not None
         assert len(ext_modules) == 1
