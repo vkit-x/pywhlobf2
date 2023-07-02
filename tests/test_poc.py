@@ -24,7 +24,7 @@ def poc_cythonize(py_file: Path, working_fd: Path):
     shutil.copyfile(py_file, working_py_file)
 
     cythonize_options = {'language_level': 3, 'language': 'c++'}
-    ext_modules = cythonize(module_list=[str(working_py_file)], **cythonize_options)
+    ext_modules = cythonize(module_list=[str(working_py_file)], **cythonize_options)  # type: ignore
     print(ext_modules)
     assert ext_modules is not None
     assert len(ext_modules) == 1
