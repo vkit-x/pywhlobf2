@@ -1,9 +1,10 @@
-from typing import Sequence, Optional, List, Callable
+from typing import Sequence, Optional, List, Callable, Set
 from pathlib import Path
 import tempfile
 import functools
 from concurrent.futures import ProcessPoolExecutor
 import shutil
+import logging
 
 import attrs
 import iolite as io
@@ -14,16 +15,20 @@ from .code_file_processor import (
     CodeFileProcessor,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @attrs.define
 class PackageFolderProcessorConfig:
     code_file_processor_config: CodeFileProcessorConfig = attrs.field(
         factory=CodeFileProcessorConfig
     )
-    patterns: Sequence[str] = (
+    exclude_file_patterns: Sequence[str] = ()
+    include_py_file_patterns: Sequence[str] = (
         '**/*.py',
         '**/*.pyx',
     )
+    bypass_py_file_patterns: Sequence[str] = ()
     delete_processed_code_file: bool = True
     num_processes: Optional[int] = None
     reset_output_fd: bool = False
@@ -96,7 +101,7 @@ class PackageFolderProcessor:
         else:
             working_fd = io.folder(working_fd, reset=True)
 
-        # Make it short to aboid path too long issue.
+        # Make it short to avoid path too long issue.
         # `b` for build, `l` for logging.
         build_fd = working_fd / 'b'
         logging_fd = working_fd / 'l'
@@ -112,11 +117,39 @@ class PackageFolderProcessor:
             shutil.copyfile(init_py_file, cpp_generator_working_fd / init_py_file.name)
 
         # Collect code files to process.
-        py_files: List[Path] = []
-        for pattern in self.config.patterns:
-            py_files.extend(input_fd.glob(pattern))
+        excluded_files: Set[Path] = set()
+        for pattern in self.config.exclude_file_patterns:
+            excluded_files.update(input_fd.glob(pattern))
+
+        bypassed_py_files: Set[Path] = set()
+        for pattern in self.config.bypass_py_file_patterns:
+            bypassed_py_files.update(input_fd.glob(pattern))
+
+        included_bypassed_py_files: List[Path] = []
+        included_tbd_py_files: List[Path] = []
+        for pattern in self.config.include_py_file_patterns:
+            for py_file in input_fd.glob(pattern):
+                if py_file in excluded_files:
+                    continue
+                if py_file in bypassed_py_files:
+                    included_bypassed_py_files.append(py_file)
+                else:
+                    included_tbd_py_files.append(py_file)
+
+        logger.info('excluded_files =')
+        for excluded_file in sorted(excluded_files):
+            logger.info(f'  {excluded_file.relative_to(input_fd)}')
+
+        logger.info('included_bypassed_py_files =')
+        for included_bypassed_py_file in sorted(included_bypassed_py_files):
+            logger.info(f'  {included_bypassed_py_file.relative_to(input_fd)}')
+
+        logger.info('included_tbd_py_files =')
+        for included_tbd_py_file in sorted(included_tbd_py_files):
+            logger.info(f'  {included_tbd_py_file.relative_to(input_fd)}')
 
         # Process.
+        logger.info('Processing...')
         outputs = process_py_file(
             num_processes=self.config.num_processes,
             func_process_py_file=functools.partial(
@@ -125,7 +158,7 @@ class PackageFolderProcessor:
                 logging_fd=logging_fd,
                 py_root_fd=input_fd,
             ),
-            py_files=py_files,
+            py_files=included_tbd_py_files,
         )
 
         succeeded_outputs: List[CodeFileProcessorOutput] = []
@@ -148,6 +181,8 @@ class PackageFolderProcessor:
                 )
                 for input_file in input_fd.glob('**/*'):
                     if not input_file.is_file():
+                        continue
+                    if input_file in excluded_files:
                         continue
                     output_file = output_fd / input_file.relative_to(input_fd)
                     output_file.parent.mkdir(exist_ok=True, parents=True)

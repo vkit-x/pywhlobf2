@@ -17,6 +17,8 @@ elif [[ "$PYTHON_VERSION" == "3.10" ]]; then
     export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp310'
 elif [[ "$PYTHON_VERSION" == "3.11" ]]; then
     export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp311'
+elif [[ "$PYTHON_VERSION" == "3.12" ]]; then
+    export PYWHLOBF_WHEEL_FILE_OUTPUT_ABI_TAG='cp312'
 else
     echo "FATEL: Invalid PYTHON_VERSION={PYTHON_VERSION}. Abort."
     exit 1

@@ -19,6 +19,11 @@ def test_package_folder_processor():
 
     package_folder_processor = PackageFolderProcessor(
         PackageFolderProcessorConfig(
+            exclude_file_patterns=('vendored/**/*',),
+            bypass_py_file_patterns=(
+                # '__init__.py',
+                'bdist_wheel.py',
+            ),
             code_file_processor_config=CodeFileProcessorConfig(
                 cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600),
                 verbose=True,

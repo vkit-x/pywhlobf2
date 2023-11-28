@@ -31,23 +31,8 @@ def get_test_output_fd(frames_offset: int = 0):
     module_path = frames[frames_offset].filename
     function_name = frames[frames_offset].function
     module_fd = io.folder(get_data_folder(module_path))
-    test_fd = io.folder(module_fd / function_name, touch=True)
+    test_fd = io.folder(module_fd / function_name, reset=True)
     return test_fd
-
-
-def get_test_output_path(rel_path: str, frames_offset: int = 0):
-    if not os.getenv('PYWHLOBF_ROOT') or not os.getenv('PYWHLOBF_DATA'):
-        raise NotImplementedError()
-
-    frames = inspect.stack()
-    frames_offset += 1
-    module_path = frames[frames_offset].filename
-    function_name = frames[frames_offset].function
-    module_fd = io.folder(get_data_folder(module_path))
-    test_fd = io.folder(module_fd / function_name, touch=True)
-    test_output_path = test_fd / rel_path
-    io.folder(test_output_path.parent, touch=True)
-    return test_output_path
 
 
 def get_test_py_file():

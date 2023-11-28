@@ -19,9 +19,6 @@ jobs:
           - "manylinux2014_x86_64"
           - "manylinux_2_24_x86_64"
           - "manylinux_2_28_x86_64"
-        cython3:
-          - "no"
-          - "yes"
     steps:
       - uses: actions/checkout@v3
       - name: Build & push
@@ -38,13 +35,7 @@ jobs:
           echo "PYWHLOBF_VERSION=${PYWHLOBF_VERSION}"
 
           # Build image.
-          if [ "${{ matrix.cython3 }}" = 'no' ] ; then
-            TAG="${PYWHLOBF_VERSION}-${{ matrix.platform_tag }}"
-          elif  [ "${{ matrix.cython3 }}" = 'yes' ] ; then
-            TAG="${PYWHLOBF_VERSION}-cython3-${{ matrix.platform_tag }}"
-          else
-            exit 1
-          fi
+          TAG="${PYWHLOBF_VERSION}-${{ matrix.platform_tag }}"
           echo "TAG=${TAG}"
 
           export DOCKER_BUILDKIT=1
@@ -53,7 +44,6 @@ jobs:
             -f dockerfile/Dockerfile \
             --build-arg PLATFORM_TAG="${{ matrix.platform_tag }}" \
             --build-arg PYWHLOBF_WHELL_NAME="$PYWHLOBF_WHELL_NAME" \
-            --build-arg PYWHLOBF_CYTHON3="${{ matrix.cython3 }}" \
             --build-arg PYWHLOBF_WHEEL_FILE_OUTPUT_PLATFORM_TAG="${{ matrix.platform_tag }}" \
             -t pywhlobf/pywhlobf:"$TAG" \
             .

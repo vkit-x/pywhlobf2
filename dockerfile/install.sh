@@ -11,15 +11,10 @@ declare -a ABI_TAGS=(
     cp39-cp39
     cp310-cp310
     cp311-cp311
+    cp312-cp312
 )
 
-if [ "$PYWHLOBF_CYTHON3" = 'no' ]; then
-    PYWHLOBF_EXTRA=""
-elif [ "$PYWHLOBF_CYTHON3" = 'yes' ]; then
-    PYWHLOBF_EXTRA="[cython3]"
-else
-    exit 1
-fi
+PYWHLOBF_EXTRA=""
 
 if [ -n "$PYWHLOBF_WHELL_NAME" ]; then
     PYWHLOBF_REQUIREMENT_SPECIFIER="pywhlobf${PYWHLOBF_EXTRA}@file:///b/dist/${PYWHLOBF_WHELL_NAME}"
