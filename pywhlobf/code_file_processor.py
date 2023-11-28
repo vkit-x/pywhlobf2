@@ -8,6 +8,10 @@ from .component.cpp_generator import (
     CppGeneratorConfig,
     CppGenerator,
 )
+from .component.flag_setter import (
+    FlagSetterConfig,
+    FlagSetter,
+)
 from .component.string_literal_obfuscator import (
     StringLiteralObfuscatorConfig,
     StringLiteralObfuscator,
@@ -26,6 +30,7 @@ from .execution_context import ExecutionContextCollection
 @attrs.define
 class CodeFileProcessorConfig:
     cpp_generator_config: CppGeneratorConfig = attrs.field(factory=CppGeneratorConfig)
+    flag_setter_config: FlagSetterConfig = attrs.field(factory=FlagSetterConfig)
     string_literal_obfuscator_config: StringLiteralObfuscatorConfig = attrs.field(
         factory=StringLiteralObfuscatorConfig
     )
@@ -49,6 +54,7 @@ class CodeFileProcessor:
         self.config = config
 
         self.cpp_generator = CppGenerator(config.cpp_generator_config)
+        self.flag_setter = FlagSetter(config.flag_setter_config)
         self.string_literal_obfuscator = \
             StringLiteralObfuscator(config.string_literal_obfuscator_config)
         self.source_code_injector = SourceCodeInjector(config.source_code_injector_config)
@@ -110,6 +116,10 @@ class CodeFileProcessor:
                     py_file=py_file,
                     working_fd=cpp_generator_working_fd,
                 )
+
+        with execution_context_collection.guard('flag_setter') as should_run:
+            if should_run:
+                self.flag_setter.run(cpp_file=cpp_file)
 
         with execution_context_collection.guard('string_literal_obfuscator') as should_run:
             if should_run:

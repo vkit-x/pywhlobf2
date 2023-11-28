@@ -78,3 +78,24 @@ def get_test_wheel_file():
             expandvars=True,
             exists=True,
         )
+
+
+def get_test_customized_py_file():
+    py_file = io.file(
+        '$PYWHLOBF_DATA/test-data/customized.py',
+        expandvars=True,
+    )
+    code = '''\
+import os
+
+a = True
+b = False
+_PYWHLOBF_FLAG = False
+
+print('a')
+if _PYWHLOBF_FLAG:
+    print('_PYWHLOBF_FLAG is set.')
+print('b')
+'''
+    py_file.write_text(code)
+    return py_file
