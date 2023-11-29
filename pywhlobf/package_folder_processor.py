@@ -172,6 +172,8 @@ class PackageFolderProcessor:
         # Post.
         if not failed_outputs:
             if output_fd is None:
+                for file in excluded_files:
+                    file.unlink()
                 output_fd = input_fd
             else:
                 output_fd = io.folder(
