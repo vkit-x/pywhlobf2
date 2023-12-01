@@ -119,7 +119,7 @@ class PackageFolderProcessor:
         # Collect code files to process.
         excluded_files: Set[Path] = set()
         for pattern in self.config.exclude_file_patterns:
-            excluded_files.update(input_fd.glob(pattern))
+            excluded_files.update(path for path in input_fd.glob(pattern) if path.is_file())
 
         bypassed_py_files: Set[Path] = set()
         for pattern in self.config.bypass_py_file_patterns:
