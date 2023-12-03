@@ -38,34 +38,27 @@ class ExecutionContext:
             os.dup2(prev_stderr_fileno, sys.stderr.fileno())
 
     def get_logging_message(self, verbose: bool):
-        lines = [
-            '###',
-            f'ExecutionContext: {self.context_name}',
-            f'executed={self.executed}, succeeded={self.succeeded}',
-            '###',
-        ]
+        lines = [(
+            f'# ExecutionContext: {self.context_name} '
+            f'executed={self.executed}, succeeded={self.succeeded}'
+        )]
 
-        gap_line = '---'
         if self.executed:
             if verbose:
                 stdout = self.stdout_file.read_text().strip()
-                lines.append(gap_line)
-                lines.append('>>> STDOUT')
-                lines.append(gap_line)
+                lines.append('<<< STDOUT >>>')
                 lines.append(stdout or 'NO MESSAGE')
-                lines.append(gap_line)
+                lines.append('==============')
 
             stderr = self.stderr_file.read_text().strip()
-            lines.append(gap_line)
-            lines.append('>>> STDERR')
-            lines.append(gap_line)
+            lines.append('<<< STDERR >>>')
             lines.append(stderr or 'NO MESSAGE')
-            lines.append(gap_line)
+            lines.append('==============')
 
         else:
-            lines.append(gap_line)
+            lines.append('==============')
             lines.append('NOT EXECUTED')
-            lines.append(gap_line)
+            lines.append('==============')
 
         return '\n'.join(lines)
 
@@ -98,7 +91,6 @@ class ExecutionContextCollection:
         for execution_context in self.execution_contexts:
             lines.extend([
                 execution_context.get_logging_message(self.verbose),
-                '',
                 '',
             ])
         return '\n'.join(lines)

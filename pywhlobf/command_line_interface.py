@@ -8,6 +8,7 @@ import json
 import tempfile
 import shutil
 import os
+import logging
 
 import iolite as io
 import cattrs
@@ -456,6 +457,12 @@ class CommandLineInterface:
 
 
 def main():
+    logging.basicConfig(
+        format='%(asctime)s - (%(name)s)[%(levelname)s]: %(message)s',
+        level='INFO',
+        force=True,
+    )
+
     # https://github.com/google/python-fire/issues/188
     def Display(lines, out):  # type: ignore
         text = "\n".join(lines) + "\n"
