@@ -13,7 +13,8 @@ from pywhlobf.code_file_processor import (
 from tests.opt import (
     get_test_output_fd,
     get_test_py_file,
-    get_test_customized_py_file,
+    get_test_customized_py_file_0,
+    get_test_customized_py_file_1,
 )
 
 
@@ -67,6 +68,8 @@ def test_code_file_processor():
     assert output.compiled_lib_file and output.compiled_lib_file.is_file()
     assert output.execution_context_collection.succeeded
 
+    (working_fd / test_py_file.name).unlink()
+
     # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
     env = os.environ.copy()
     env['PYTHONPATH'] = str(working_fd)
@@ -92,7 +95,7 @@ def test_code_file_processor():
 
 def test_customzied_setup():
     working_fd = get_test_output_fd()
-    test_py_file = get_test_customized_py_file()
+    test_py_file = get_test_customized_py_file_0()
 
     config = CodeFileProcessorConfig(
         cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600)
@@ -107,6 +110,48 @@ def test_customzied_setup():
     print(output.execution_context_collection.get_logging_message())
     assert output.compiled_lib_file and output.compiled_lib_file.is_file()
     assert output.execution_context_collection.succeeded
+
+    (working_fd / test_py_file.name).unlink()
+
+    # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(working_fd)
+    process = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            f'import {test_py_file.stem}',
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    print('-' * 40)
+    print(process.stdout)
+    print('-' * 40)
+    print(process.stderr)
+    print('-' * 40)
+
+
+def test_cattrs_generic():
+    working_fd = get_test_output_fd()
+    test_py_file = get_test_customized_py_file_1()
+
+    config = CodeFileProcessorConfig(
+        cpp_compiler_config=CppCompilerConfig(setup_build_ext_timeout=600)
+    )
+    code_file_processor = CodeFileProcessor(config)
+
+    output = code_file_processor.run(
+        py_file=test_py_file,
+        build_fd=working_fd,
+        logging_fd=working_fd,
+    )
+    print(output.execution_context_collection.get_logging_message())
+    assert output.compiled_lib_file and output.compiled_lib_file.is_file()
+    assert output.execution_context_collection.succeeded
+
+    (working_fd / test_py_file.name).unlink()
 
     # https://stackoverflow.com/questions/58997105/fatal-python-error-failed-to-get-random-numbers-to-initialize-python
     env = os.environ.copy()

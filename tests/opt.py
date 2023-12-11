@@ -80,9 +80,9 @@ def get_test_wheel_file():
         )
 
 
-def get_test_customized_py_file():
+def get_test_customized_py_file_0():
     py_file = io.file(
-        '$PYWHLOBF_DATA/test-data/customized.py',
+        '$PYWHLOBF_DATA/test-data/customized_0.py',
         expandvars=True,
     )
     code = '''\
@@ -96,6 +96,68 @@ print('a')
 if _PYWHLOBF_FLAG:
     print('_PYWHLOBF_FLAG is set.')
 print('b')
+'''
+    py_file.write_text(code)
+    return py_file
+
+
+def get_test_customized_py_file_1():
+    py_file = io.file(
+        '$PYWHLOBF_DATA/test-data/customized_1.py',
+        expandvars=True,
+    )
+    code = '''\
+from typing import TypeVar, Generic, Optional
+import attrs
+import cattrs
+
+@attrs.define
+class B0:
+    a: int
+
+@attrs.define
+class B1:
+    b: str
+
+_T = TypeVar('_T', B0, B1)
+
+@attrs.define
+class Foo(Generic[_T]):
+    a: int
+    b: _T
+
+@attrs.define
+class Bar:
+    c: Foo[B0]
+    d: Optional[Foo[B1]]
+
+foo0 = Foo(a=1, b=B0(2))
+foo1 = Foo(a=1, b=B1(2))
+print(foo0)
+print(foo1)
+print(cattrs.unstructure(foo0))
+print(cattrs.unstructure(foo1))
+
+bar0 = Bar(c=foo0, d=foo1)
+print(bar0)
+print(cattrs.unstructure(bar0))
+
+bar1 = Bar(c=foo0, d=None)
+print(bar1)
+print(cattrs.unstructure(bar1))
+
+@attrs.define
+class Baz:
+    e: Bar
+    f: Optional[Bar]
+
+baz0 = Baz(e=bar0, f=bar1)
+print(baz0)
+print(cattrs.unstructure(baz0))
+
+baz1 = Baz(e=bar0, f=None)
+print(baz1)
+print(cattrs.unstructure(baz1))
 '''
     py_file.write_text(code)
     return py_file
