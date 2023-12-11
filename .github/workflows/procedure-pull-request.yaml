@@ -19,7 +19,8 @@ jobs:
         run: |
           if [ $(git --no-pager diff --name-only origin/master HEAD -- pywhlobf | wc -l) -eq 0 ] \
               && [ $(git --no-pager diff origin/master HEAD -- setup.cfg | wc -l) -eq 0 ] \
-              && [ $(git --no-pager diff --name-only origin/master HEAD -- .github | wc -l) -eq 0 ]
+              && [ $(git --no-pager diff --name-only origin/master HEAD -- .github | wc -l) -eq 0 ] \
+              && [ $(git --no-pager diff --name-only origin/master HEAD -- tests | wc -l) -eq 0 ]
           then
             echo "abort=1" >> $GITHUB_OUTPUT
           else
